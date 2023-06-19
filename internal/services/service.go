@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -16,14 +17,10 @@ func NewService() *Service {
 	return &Service{}
 }
 
-func (service *Service) GetDolarColonesChange() ([]models.ExchangeRate, error) {
+func (service *Service) GetDolarColonesChange(ctx context.Context) ([]models.ExchangeRate, error) {
 	url := "https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?idioma=1&CodCuadro=%20400"
 
 	collyCollector := colly.NewCollector()
-
-	collyCollector.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL)
-	})
 
 	exchangesRates := []models.ExchangeRate{}
 

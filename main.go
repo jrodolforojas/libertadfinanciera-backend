@@ -1,10 +1,8 @@
 package main
 
-import (
-	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services"
-)
+import "github.com/jrodolforojas/libertadfinanciera-backend/internal/transports"
 
 func main() {
-	service := services.NewService()
-	service.GetDolarColonesChange()
+	server := transports.WebServer{}
+	server.StartServer()
 }
