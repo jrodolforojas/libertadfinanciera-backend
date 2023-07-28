@@ -1,0 +1,12 @@
+name: Get Today Dollar-Colones Exchange Rate
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 'Scrapping BCCR to get the latest exchange rate'
+      - run: curl https://libertadfinanciera.up.railway.app/exchange_rates/today
