@@ -66,3 +66,41 @@ func (service *Service) GetDolarColonesChange(ctx context.Context) ([]models.Exc
 
 	return []models.ExchangeRate{}, nil
 }
+
+func (service *Service) GetTodayExchangeRate(ctx context.Context) (models.ExchangeRate, error) {
+	url := "https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?idioma=1&CodCuadro=%20400"
+
+	collyCollector := colly.NewCollector()
+
+	todayExchangeRate := models.ExchangeRate{}
+
+	collyCollector.OnHTML("#theTable400", func(h *colly.HTMLElement) {
+		date := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr:nth-child(30) > td")
+		buyHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(30) > td")
+		saleHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(3) > table > tbody > tr > td > table > tbody > tr:nth-child(30) > td")
+
+		salePrice := strings.ReplaceAll(saleHTML, ",", ".")
+		sale, err := strconv.ParseFloat(salePrice, 64)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			return
+		}
+
+		buyPrice := strings.ReplaceAll(buyHTML, ",", ".")
+		buy, err := strconv.ParseFloat(buyPrice, 64)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			return
+		}
+
+		todayExchangeRate = models.ExchangeRate{
+			Date:      date,
+			SalePrice: sale,
+			BuyPrice:  buy,
+		}
+	})
+
+	collyCollector.Visit(url)
+
+	return todayExchangeRate, nil
+}
