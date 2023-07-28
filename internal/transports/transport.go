@@ -34,11 +34,22 @@ func MakeHTTPHandler(ctx context.Context, s *services.Service) http.Handler {
 		encodeResponse,
 	))
 
+	router.Methods(http.MethodGet).Path("/exchange_rates/today").Handler(httptransport.NewServer(
+		endpoints.GetTodayExchangeRate,
+		decodeTodayExchangeRateRequest,
+		encodeResponse,
+	))
+
 	return router
 }
 
 func decodeGetAllDolarColonesChangesRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 	var req services.GetAllDolarColonesChangesRequest
+	return req, nil
+}
+
+func decodeTodayExchangeRateRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	var req services.GetTodayExchangeRateRequest
 	return req, nil
 }
 
