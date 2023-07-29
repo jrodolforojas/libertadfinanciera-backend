@@ -2,8 +2,7 @@ name: Scrape and Save BCCR today exchange
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
-    - cron: '0 12 * * *'
+    - cron: '5 12 * * *'
 
 jobs:
   scrappe:
