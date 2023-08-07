@@ -17,7 +17,7 @@ type errorer interface {
 	error() error
 }
 
-func MakeHTTPHandler(ctx context.Context, s *services.Service) http.Handler {
+func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 	router := mux.NewRouter()
 	endpoints := services.MakeEndpoints(s)
 
@@ -44,7 +44,7 @@ func MakeHTTPHandler(ctx context.Context, s *services.Service) http.Handler {
 }
 
 func decodeGetAllDolarColonesChangesRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
-	var req services.GetAllDolarColonesChangesRequest
+	var req services.GetAllDollarColonesChangesRequest
 	return req, nil
 }
 

@@ -2,9 +2,9 @@ package services
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-kit/kit/endpoint"
-	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
 )
 
 type Endpoints struct {
@@ -12,51 +12,33 @@ type Endpoints struct {
 	GetTodayExchangeRate      endpoint.Endpoint
 }
 
-func MakeEndpoints(s *Service) Endpoints {
+func MakeEndpoints(s *ServiceAPI) Endpoints {
 	return Endpoints{
 		GetAllDolarColonesChanges: makeGetAllDolarColonesChangesEndpoint(s),
 		GetTodayExchangeRate:      makeGetTodayExchangeRateEndpoint(s),
 	}
 }
 
-func makeGetAllDolarColonesChangesEndpoint(s *Service) endpoint.Endpoint {
+func makeGetAllDolarColonesChangesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		exchangesRates, err := s.GetDolarColonesChange(ctx)
+		req, ok := request.(GetAllDollarColonesChangesRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+		}
 
-		return GetAllDolarColonesChangesResponse{
-			ExchangesRates: exchangesRates,
-			Err:            err,
-		}, err
+		result := s.GetDollarColonesChange(ctx, req)
+		return result, nil
 	}
 }
 
-type GetAllDolarColonesChangesRequest struct {
-}
-
-type GetAllDolarColonesChangesResponse struct {
-	ExchangesRates []models.ExchangeRate `json:"data"`
-	Err            error                 `json:"error,omitempty"`
-}
-
-func (r GetAllDolarColonesChangesResponse) error() error { return r.Err }
-
-type GetTodayExchangeRateRequest struct {
-}
-
-type GetTodayExchangeRateResponse struct {
-	ExchangesRate models.ExchangeRate `json:"data"`
-	Err           error               `json:"error,omitempty"`
-}
-
-func (r GetTodayExchangeRateResponse) error() error { return r.Err }
-
-func makeGetTodayExchangeRateEndpoint(s *Service) endpoint.Endpoint {
+func makeGetTodayExchangeRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		exchangeRate, err := s.GetTodayExchangeRate(ctx)
+		req, ok := request.(GetTodayExchangeRateRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+		}
+		result := s.GetTodayExchangeRate(ctx, req)
 
-		return GetTodayExchangeRateResponse{
-			ExchangesRate: exchangeRate,
-			Err:           err,
-		}, err
+		return result, nil
 	}
 }

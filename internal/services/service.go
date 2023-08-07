@@ -3,21 +3,28 @@ package services
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/repositories"
 )
 
-type Service struct {
+type Service interface {
+	GetDolarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse
+	GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse
 }
 
-func NewService() *Service {
-	return &Service{}
+type ServiceAPI struct {
+	Repository repositories.Repository
 }
 
-func (service *Service) GetDolarColonesChange(ctx context.Context) ([]models.ExchangeRate, error) {
+func NewService(repo repositories.Repository) *ServiceAPI {
+	return &ServiceAPI{
+		Repository: repo,
+	}
+}
+
+func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse {
 	url := "https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?idioma=1&CodCuadro=%20400"
 
 	collyCollector := colly.NewCollector()
@@ -35,39 +42,30 @@ func (service *Service) GetDolarColonesChange(ctx context.Context) ([]models.Exc
 		}
 
 		for i := 0; i < len(dates); i++ {
-			salePrice := strings.ReplaceAll(sales[i], ",", ".")
-			sale, err := strconv.ParseFloat(salePrice, 64)
-			if err != nil {
-				fmt.Println("Error: ", err)
-				return
-			}
-
-			buyPrice := strings.ReplaceAll(buys[i], ",", ".")
-			buy, err := strconv.ParseFloat(buyPrice, 64)
-			if err != nil {
-				fmt.Println("Error: ", err)
-				return
-			}
-
-			exchangeRate := models.ExchangeRate{
+			result := ExchangeRateHTML{
+				SalePrice: sales[i],
+				BuyPrice:  buys[i],
 				Date:      dates[i],
-				SalePrice: sale,
-				BuyPrice:  buy,
 			}
-			exchangesRates = append(exchangesRates, exchangeRate)
+
+			toExchangeRate, err := result.ToExchangeRate()
+			if err != nil {
+				fmt.Println("error converting from html to exchange rate: ", err)
+				return
+			}
+			exchangesRates = append(exchangesRates, toExchangeRate)
 		}
 	})
 
 	collyCollector.Visit(url)
 
-	if len(exchangesRates) > 0 {
-		return exchangesRates, nil
+	return &GetAllDollarColonesChangesResponse{
+		ExchangesRates: exchangesRates,
+		Err:            nil,
 	}
-
-	return []models.ExchangeRate{}, nil
 }
 
-func (service *Service) GetTodayExchangeRate(ctx context.Context) (models.ExchangeRate, error) {
+func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse {
 	url := "https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?idioma=1&CodCuadro=%20400"
 
 	collyCollector := colly.NewCollector()
@@ -79,28 +77,34 @@ func (service *Service) GetTodayExchangeRate(ctx context.Context) (models.Exchan
 		buyHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(30) > td")
 		saleHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(3) > table > tbody > tr > td > table > tbody > tr:nth-child(30) > td")
 
-		salePrice := strings.ReplaceAll(saleHTML, ",", ".")
-		sale, err := strconv.ParseFloat(salePrice, 64)
-		if err != nil {
-			fmt.Println("Error: ", err)
-			return
-		}
-
-		buyPrice := strings.ReplaceAll(buyHTML, ",", ".")
-		buy, err := strconv.ParseFloat(buyPrice, 64)
-		if err != nil {
-			fmt.Println("Error: ", err)
-			return
-		}
-
-		todayExchangeRate = models.ExchangeRate{
+		result := ExchangeRateHTML{
+			SalePrice: saleHTML,
+			BuyPrice:  buyHTML,
 			Date:      date,
-			SalePrice: sale,
-			BuyPrice:  buy,
 		}
+
+		toExchangeRate, err := result.ToExchangeRate()
+		if err != nil {
+			fmt.Println("error converting from html to exchange rate: ", err)
+			return
+		}
+
+		todayExchangeRate = toExchangeRate
 	})
 
 	collyCollector.Visit(url)
 
-	return todayExchangeRate, nil
+	// insert into database
+	result, err := service.Repository.SaveLatestExchangeRate(todayExchangeRate)
+	if err != nil {
+		return &GetTodayExchangeRateResponse{
+			ExchangesRate: nil,
+			Err:           err,
+		}
+	}
+
+	return &GetTodayExchangeRateResponse{
+		ExchangesRate: result,
+		Err:           nil,
+	}
 }
