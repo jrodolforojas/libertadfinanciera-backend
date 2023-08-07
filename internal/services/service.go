@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/repositories"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services/scrapper"
 )
@@ -26,11 +27,28 @@ func NewService(scrapperService scrapper.Scrapper, repo repositories.Repository)
 }
 
 func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse {
-	exchangesRates, err := service.Scrapper.GetDollarColonesChangeByDates(req.DateFrom, req.DateTo)
+	dateFrom := req.DateFrom
+
+	var allExchangeRates []models.ExchangeRate
+	for dateFrom.Before(req.DateTo) {
+		nextMonthDate := dateFrom.AddDate(0, 1, 0) // add 1 month to dateFrom
+		if nextMonthDate.After(req.DateTo) {
+			nextMonthDate = req.DateTo
+		}
+		exchangeRates, err := service.Scrapper.GetDollarColonesChangeByDates(dateFrom, nextMonthDate)
+		if err != nil {
+			return &GetAllDollarColonesChangesResponse{
+				ExchangesRates: nil,
+				Err:            err,
+			}
+		}
+		allExchangeRates = append(allExchangeRates, exchangeRates...)
+		dateFrom = nextMonthDate
+	}
 
 	return &GetAllDollarColonesChangesResponse{
-		ExchangesRates: exchangesRates,
-		Err:            err,
+		ExchangesRates: allExchangeRates,
+		Err:            nil,
 	}
 }
 
