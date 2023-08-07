@@ -6,11 +6,12 @@ import (
 
 	"github.com/gocolly/colly/v2"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/utils"
 )
 
 type Scrapper interface {
 	GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error)
-	GetLatestExchangeRate() (*models.ExchangeRate, error)
+	GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error)
 }
 
 type BCCRScrapper struct {
@@ -24,7 +25,7 @@ func NewBCCRScrapper(url string) *BCCRScrapper {
 }
 
 func (scrapper *BCCRScrapper) getScrappingUrl(dateFrom time.Time, dateTo time.Time) string {
-	return fmt.Sprintf(scrapper.url, dateFrom.Format("2006/01/02"), dateTo.Format("2006/01/02"))
+	return fmt.Sprintf(scrapper.url, dateFrom.Format(utils.DATE_FORMAT), dateTo.Format(utils.DATE_FORMAT))
 }
 
 func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error) {
@@ -65,8 +66,8 @@ func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, 
 	return exchangesRates, nil
 }
 
-func (scrapper *BCCRScrapper) GetLatestExchangeRate() (*models.ExchangeRate, error) {
-	url := scrapper.getScrappingUrl(time.Now(), time.Now())
+func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error) {
+	url := scrapper.getScrappingUrl(date, date)
 	collyCollector := colly.NewCollector()
 
 	todayExchangeRate := models.ExchangeRate{}

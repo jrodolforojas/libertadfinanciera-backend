@@ -7,18 +7,18 @@ import (
 )
 
 var months = map[string]int{
-	"Ene": 1,
-	"Feb": 2,
-	"Mar": 3,
-	"Abr": 4,
-	"May": 5,
-	"Jun": 6,
-	"Jul": 7,
-	"Ago": 8,
-	"Set": 9,
-	"Oct": 10,
-	"Nov": 11,
-	"Dic": 12,
+	"Ene": int(time.January),
+	"Feb": int(time.February),
+	"Mar": int(time.March),
+	"Abr": int(time.April),
+	"May": int(time.May),
+	"Jun": int(time.June),
+	"Jul": int(time.July),
+	"Ago": int(time.August),
+	"Set": int(time.September),
+	"Oct": int(time.October),
+	"Nov": int(time.November),
+	"Dic": int(time.December),
 }
 
 type ExchangeRateHTML struct {
@@ -59,6 +59,5 @@ func (exchangeRateHTML ExchangeRateHTML) ToExchangeRate() (ExchangeRate, error) 
 		SalePrice: sale,
 		BuyPrice:  buy,
 		Date:      date,
-		CreatedAt: time.Now().UTC(),
 	}, nil
 }
