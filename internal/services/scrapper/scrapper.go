@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
 	"github.com/gocolly/colly/v2"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/utils"
@@ -15,12 +17,14 @@ type Scrapper interface {
 }
 
 type BCCRScrapper struct {
-	url string
+	logger log.Logger
+	url    string
 }
 
-func NewBCCRScrapper(url string) *BCCRScrapper {
+func NewBCCRScrapper(logger log.Logger, url string) *BCCRScrapper {
 	return &BCCRScrapper{
-		url: url,
+		logger: logger,
+		url:    url,
 	}
 }
 
@@ -41,7 +45,7 @@ func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, 
 		sales := h.ChildTexts("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(3) > table > tbody > tr > td > table > tbody > tr > td")
 
 		if len(dates) != len(buys) || len(dates) != len(sales) {
-			fmt.Println("Error: The number of dates, buys and sales are not the same")
+			_ = level.Debug(scrapper.logger).Log("message", "The number of dates, buys and sales are not the same")
 			return
 		}
 
@@ -54,7 +58,7 @@ func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, 
 
 			toExchangeRate, err := result.ToExchangeRate()
 			if err != nil {
-				fmt.Println("error converting from html to exchange rate: ", err)
+				_ = level.Debug(scrapper.logger).Log("message", "error converting from html to exchange rate", "result", result, "error", err)
 				return
 			}
 			exchangesRates = append(exchangesRates, toExchangeRate)
@@ -85,7 +89,7 @@ func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.Exc
 
 		toExchangeRate, err := result.ToExchangeRate()
 		if err != nil {
-			fmt.Println("error converting from html to exchange rate: ", err)
+			_ = level.Debug(scrapper.logger).Log("message", "error converting from html to exchange rate", "result", result, "error", err)
 			return
 		}
 
