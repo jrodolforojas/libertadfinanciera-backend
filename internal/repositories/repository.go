@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	SaveLatestExchangeRate(exchangeRate models.ExchangeRate) (*models.ExchangeRate, error)
+	SaveExchangeRate(exchangeRate models.ExchangeRate) (*models.ExchangeRate, error)
 	GetExchangeRates() ([]models.ExchangeRate, error)
 	GetExchangeRateByDate(dateFrom time.Time, dateTo time.Time) (models.ExchangeRate, error)
 }

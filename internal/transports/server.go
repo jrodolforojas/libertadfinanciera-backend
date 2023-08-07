@@ -36,7 +36,7 @@ func (ws *WebServer) StartServer() {
 	key := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwbnp4eWprbmdwemdodGhuZWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTA2NTMwOTYsImV4cCI6MjAwNjIyOTA5Nn0.AHAU4PPgYMO7FTb3BZCxGwkoZnvawiHgyIODx8W6Seo"
 	supabaseClient := supabase.InitSupabase(url, key)
 
-	scrapper := scrapper.NewBCCRScrapper("https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?idioma=1&CodCuadro=%20400")
+	scrapper := scrapper.NewBCCRScrapper("https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?CodCuadro=400&Idioma=1&FecInicial=%s&FecFinal=%s&Filtro=0")
 	repository := supabase.NewSupabase(supabaseClient)
 
 	service := services.NewService(scrapper, repository)

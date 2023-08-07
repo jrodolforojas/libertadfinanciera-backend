@@ -8,8 +8,7 @@ import (
 
 const tableName = "exchange_rates"
 
-func (supa *Supabase) SaveLatestExchangeRate(exchangeRate models.ExchangeRate) (*models.ExchangeRate, error) {
-
+func (supa *Supabase) SaveExchangeRate(exchangeRate models.ExchangeRate) (*models.ExchangeRate, error) {
 	var results []models.ExchangeRate
 	err := supa.Client.DB.From(tableName).Insert(exchangeRate).Execute(&results)
 	if err != nil {

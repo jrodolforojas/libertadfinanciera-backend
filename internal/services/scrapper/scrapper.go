@@ -9,7 +9,6 @@ import (
 )
 
 type Scrapper interface {
-	GetCurrentTableDollarColonesChange() ([]models.ExchangeRate, error)
 	GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error)
 	GetLatestExchangeRate() (*models.ExchangeRate, error)
 }
@@ -24,7 +23,13 @@ func NewBCCRScrapper(url string) *BCCRScrapper {
 	}
 }
 
-func (scrapper *BCCRScrapper) GetCurrentTableDollarColonesChange() ([]models.ExchangeRate, error) {
+func (scrapper *BCCRScrapper) getScrappingUrl(dateFrom time.Time, dateTo time.Time) string {
+	return fmt.Sprintf(scrapper.url, dateFrom.Format("2006/01/02"), dateTo.Format("2006/01/02"))
+}
+
+func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error) {
+	url := scrapper.getScrappingUrl(dateFrom, dateTo)
+
 	collyCollector := colly.NewCollector()
 
 	exchangesRates := []models.ExchangeRate{}
@@ -55,24 +60,21 @@ func (scrapper *BCCRScrapper) GetCurrentTableDollarColonesChange() ([]models.Exc
 		}
 	})
 
-	collyCollector.Visit(scrapper.url)
+	collyCollector.Visit(url)
 
 	return exchangesRates, nil
 }
 
-func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error) {
-	return nil, nil
-}
-
 func (scrapper *BCCRScrapper) GetLatestExchangeRate() (*models.ExchangeRate, error) {
+	url := scrapper.getScrappingUrl(time.Now(), time.Now())
 	collyCollector := colly.NewCollector()
 
 	todayExchangeRate := models.ExchangeRate{}
 
 	collyCollector.OnHTML("#theTable400", func(h *colly.HTMLElement) {
-		date := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr:nth-child(30) > td")
-		buyHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(30) > td")
-		saleHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(3) > table > tbody > tr > td > table > tbody > tr:nth-child(30) > td")
+		date := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr > td")
+		buyHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr > td")
+		saleHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(3) > table > tbody > tr > td > table > tbody > tr > td")
 
 		result := models.ExchangeRateHTML{
 			SalePrice: saleHTML,
@@ -89,7 +91,7 @@ func (scrapper *BCCRScrapper) GetLatestExchangeRate() (*models.ExchangeRate, err
 		todayExchangeRate = toExchangeRate
 	})
 
-	collyCollector.Visit(scrapper.url)
+	collyCollector.Visit(url)
 
 	return &todayExchangeRate, nil
 }

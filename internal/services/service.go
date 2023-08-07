@@ -2,10 +2,13 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/repositories"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services/scrapper"
 )
+
+const MINIMUM_DAYS_TO_GO_BACK = 30
 
 type Service interface {
 	GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse
@@ -25,8 +28,18 @@ func NewService(scrapperService scrapper.Scrapper, repo repositories.Repository)
 }
 
 func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse {
-	exchangesRates, err := service.Scrapper.GetCurrentTableDollarColonesChange()
+	dateFrom, dateTo := getDatesFromToday(MINIMUM_DAYS_TO_GO_BACK)
+	exchangesRates, err := service.Scrapper.GetDollarColonesChangeByDates(dateFrom, dateTo)
 
+	for _, exchangeRate := range exchangesRates {
+		_, err := service.Repository.SaveExchangeRate(exchangeRate)
+		if err != nil {
+			return &GetAllDollarColonesChangesResponse{
+				ExchangesRates: nil,
+				Err:            err,
+			}
+		}
+	}
 	return &GetAllDollarColonesChangesResponse{
 		ExchangesRates: exchangesRates,
 		Err:            err,
@@ -42,8 +55,7 @@ func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetToda
 		}
 	}
 
-	// insert into database
-	result, err := service.Repository.SaveLatestExchangeRate(*todayExchangeRate)
+	result, err := service.Repository.SaveExchangeRate(*todayExchangeRate)
 	if err != nil {
 		return &GetTodayExchangeRateResponse{
 			ExchangesRate: nil,
@@ -55,4 +67,12 @@ func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetToda
 		ExchangesRate: result,
 		Err:           nil,
 	}
+}
+
+// Get date from and date to from today's date and the number of days to go back
+func getDatesFromToday(days int) (time.Time, time.Time) {
+	dateTo := time.Now()
+	dateFrom := dateTo.AddDate(0, 0, -days)
+
+	return dateFrom, dateTo
 }
