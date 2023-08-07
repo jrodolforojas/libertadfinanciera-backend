@@ -11,13 +11,14 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/middleware"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/utils"
 )
 
 type errorer interface {
 	error() error
 }
 
-func MakeHTTPHandler(ctx context.Context, s *services.Service) http.Handler {
+func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 	router := mux.NewRouter()
 	endpoints := services.MakeEndpoints(s)
 
@@ -44,8 +45,35 @@ func MakeHTTPHandler(ctx context.Context, s *services.Service) http.Handler {
 }
 
 func decodeGetAllDolarColonesChangesRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
-	var req services.GetAllDolarColonesChangesRequest
-	return req, nil
+	dateFromParam := r.FormValue("date_from")
+	dateToParam := r.FormValue("date_to")
+
+	if dateFromParam != "" && dateToParam != "" {
+		dateFrom, error := utils.ConvertStringDate(dateFromParam)
+		if error != nil {
+			return nil, errDateInvalidFormat
+		}
+
+		dateTo, error := utils.ConvertStringDate(dateToParam)
+		if error != nil {
+			return nil, errDateInvalidFormat
+		}
+
+		if !utils.IsDatesValid(dateFrom, dateTo) {
+			return nil, errInvalidDateRange
+		}
+
+		return services.GetAllDollarColonesChangesRequest{
+			DateFrom: dateFrom,
+			DateTo:   dateTo,
+		}, nil
+	}
+
+	dateFrom, dateTo := utils.GetDateFromDateToFromToday(utils.DEFAULT_DAYS_TO_GO_BACK)
+	return services.GetAllDollarColonesChangesRequest{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}, nil
 }
 
 func decodeTodayExchangeRateRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
@@ -74,19 +102,16 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 }
 
 var (
-	// ErrInconsistentIDs inconsistent IDs error returns int error.
-	errInconsistentIDs = errors.New("inconsistent IDs")
-	// ErrAlreadyExists already exists error returns int error.
-	errAlreadyExists = errors.New("already exists")
-	// ErrNotFound not found error returns int error.
-	errNotFound = errors.New("not found")
+	errDateInvalidFormat = errors.New("invalid date format. Should be in format: YYYY/MM/DD")
+	errInvalidDateRange  = errors.New("invalid date range. Should be between 1983 and today")
+	errNotFound          = errors.New("not found")
 )
 
 func codeFrom(err error) int {
 	switch err {
 	case errNotFound:
 		return http.StatusNotFound
-	case errAlreadyExists, errInconsistentIDs:
+	case errDateInvalidFormat, errInvalidDateRange:
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError

@@ -10,7 +10,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/repositories/supabase"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services/scrapper"
 )
 
 // WebServer has the logic to start the microservice
@@ -30,7 +32,14 @@ func (ws *WebServer) StartServer() {
 
 	ctx := context.Background()
 
-	service := services.NewService()
+	url := "https://vpnzxyjkngpzghthneea.supabase.co"
+	key := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwbnp4eWprbmdwemdodGhuZWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTA2NTMwOTYsImV4cCI6MjAwNjIyOTA5Nn0.AHAU4PPgYMO7FTb3BZCxGwkoZnvawiHgyIODx8W6Seo"
+	supabaseClient := supabase.InitSupabase(url, key)
+
+	scrapper := scrapper.NewBCCRScrapper("https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?CodCuadro=400&Idioma=1&FecInicial=%s&FecFinal=%s&Filtro=0")
+	repository := supabase.NewSupabase(supabaseClient)
+
+	service := services.NewService(scrapper, repository)
 
 	errs := make(chan error)
 
