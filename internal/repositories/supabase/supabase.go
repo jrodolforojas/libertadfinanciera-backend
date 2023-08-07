@@ -1,15 +1,18 @@
 package supabase
 
 import (
+	"github.com/go-kit/log"
 	supa "github.com/nedpals/supabase-go"
 )
 
 type Supabase struct {
+	logger log.Logger
 	Client *supa.Client
 }
 
-func NewSupabase(client *supa.Client) *Supabase {
+func NewSupabase(logger log.Logger, client *supa.Client) *Supabase {
 	return &Supabase{
+		logger: logger,
 		Client: client,
 	}
 }

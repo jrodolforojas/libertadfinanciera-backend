@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/repositories"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services/scrapper"
@@ -15,12 +17,14 @@ type Service interface {
 }
 
 type ServiceAPI struct {
+	logger     log.Logger
 	Scrapper   scrapper.Scrapper
 	Repository repositories.Repository
 }
 
-func NewService(scrapperService scrapper.Scrapper, repo repositories.Repository) *ServiceAPI {
+func NewService(logger log.Logger, scrapperService scrapper.Scrapper, repo repositories.Repository) *ServiceAPI {
 	return &ServiceAPI{
+		logger:     logger,
 		Scrapper:   scrapperService,
 		Repository: repo,
 	}
@@ -37,6 +41,7 @@ func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAl
 		}
 		exchangeRates, err := service.Scrapper.GetDollarColonesChangeByDates(dateFrom, nextMonthDate)
 		if err != nil {
+			_ = level.Error(service.logger).Log("msg", "error scrapping", "dateFrom", dateFrom, "dateTo", nextMonthDate, "error", err)
 			return &GetAllDollarColonesChangesResponse{
 				ExchangesRates: nil,
 				Err:            err,
@@ -53,8 +58,10 @@ func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAl
 }
 
 func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse {
-	todayExchangeRate, err := service.Scrapper.GetExchangeRateByDate(time.Now())
+	date := time.Now()
+	todayExchangeRate, err := service.Scrapper.GetExchangeRateByDate(date)
 	if err != nil {
+		_ = level.Error(service.logger).Log("msg", "error scrapping", "dateFrom", date, "dateTo", date, "error", err)
 		return &GetTodayExchangeRateResponse{
 			ExchangesRate: nil,
 			Err:           err,
