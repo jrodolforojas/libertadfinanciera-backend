@@ -1,10 +1,10 @@
 # Libertad Financiera API
 
-## About
+## About 💸
 
 Web scrapper that gets the **************dollar************** ➡️ ****************colones**************** exchange rates from the [Banco Central de Costa Rica](https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?idioma=1&CodCuadro=%20400) website. So with that, you can see the exchange rates across history. 😄 🇨🇷
 
-## How to run?
+## How to run? 🤔
 
 Clone the repository.
 
@@ -24,7 +24,7 @@ Once you have the dependencies execute the `main.go` file
 go run main.go
 ```
 
-## Endpoints
+## Endpoints 📚
 
 ### GET `/exchange_rates`
 
