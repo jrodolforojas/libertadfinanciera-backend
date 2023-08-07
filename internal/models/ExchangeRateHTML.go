@@ -1,17 +1,10 @@
-package services
+package models
 
 import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
 )
-
-type Month struct {
-	Name   string
-	Number int
-}
 
 var months = map[string]int{
 	"Ene": 1,
@@ -34,35 +27,35 @@ type ExchangeRateHTML struct {
 	Date      string `json:"date"`
 }
 
-func (exchangeRateHTML ExchangeRateHTML) ToExchangeRate() (models.ExchangeRate, error) {
+func (exchangeRateHTML ExchangeRateHTML) ToExchangeRate() (ExchangeRate, error) {
 	salePrice := strings.ReplaceAll(exchangeRateHTML.SalePrice, ",", ".")
 	sale, err := strconv.ParseFloat(salePrice, 64)
 	if err != nil {
-		return models.ExchangeRate{}, err
+		return ExchangeRate{}, err
 	}
 
 	buyPrice := strings.ReplaceAll(exchangeRateHTML.BuyPrice, ",", ".")
 	buy, err := strconv.ParseFloat(buyPrice, 64)
 	if err != nil {
-		return models.ExchangeRate{}, err
+		return ExchangeRate{}, err
 	}
 
 	dateArray := strings.Split(exchangeRateHTML.Date, " ") // 0: Day, 1: Month, 2: Year
 	year, err := strconv.Atoi(dateArray[2])
 	if err != nil {
-		return models.ExchangeRate{}, err
+		return ExchangeRate{}, err
 	}
 
 	day, err := strconv.Atoi(dateArray[0])
 	if err != nil {
-		return models.ExchangeRate{}, err
+		return ExchangeRate{}, err
 	}
 
 	month := months[dateArray[1]]
 
 	date := time.Date(year, time.Month(month), day, 12, 0, 0, 0, time.UTC)
 
-	return models.ExchangeRate{
+	return ExchangeRate{
 		SalePrice: sale,
 		BuyPrice:  buy,
 		Date:      date,
