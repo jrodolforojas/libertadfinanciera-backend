@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/go-kit/kit/log/level"
@@ -50,6 +51,10 @@ func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAl
 		allExchangeRates = append(allExchangeRates, exchangeRates...)
 		dateFrom = nextMonthDate
 	}
+
+	sort.Slice(allExchangeRates, func(i, j int) bool {
+		return allExchangeRates[i].Date.After(allExchangeRates[j].Date)
+	})
 
 	return &GetAllDollarColonesChangesResponse{
 		ExchangesRates: allExchangeRates,
