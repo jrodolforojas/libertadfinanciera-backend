@@ -9,6 +9,7 @@ import (
 
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/configuration"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/middleware"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/utils"
@@ -26,8 +27,9 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 	router = router.PathPrefix("/").Subrouter()
 
 	corsMethods := []string{http.MethodOptions, http.MethodGet}
-	router.Use(middleware.CORSPolicies(corsMethods))
-	subRouter.Use(middleware.CORSPolicies(corsMethods))
+	config, _ := configuration.Read()
+	router.Use(middleware.CORSPolicies(corsMethods, config.Address.AllowedOrigins))
+	subRouter.Use(middleware.CORSPolicies(corsMethods, config.Address.AllowedOrigins))
 
 	router.Methods(http.MethodGet).Path("/exchange_rates").Handler(httptransport.NewServer(
 		endpoints.GetAllDolarColonesChanges,
