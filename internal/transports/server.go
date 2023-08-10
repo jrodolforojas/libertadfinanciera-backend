@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/go-kit/kit/log/level"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/configuration"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/repositories/supabase"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/services/scrapper"
@@ -22,19 +23,21 @@ type WebServer struct {
 
 // StartServer listens and servers this microservice
 func (ws *WebServer) StartServer() {
-	ctx := context.Background()
+	config, err := configuration.Read()
+	if err != nil {
+		panic(err)
+	}
 
 	logger := utils.NewLogger()
 	_ = level.Debug(logger).Log("msg", "service started")
 
-	url := "https://vpnzxyjkngpzghthneea.supabase.co"
-	key := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwbnp4eWprbmdwemdodGhuZWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTA2NTMwOTYsImV4cCI6MjAwNjIyOTA5Nn0.AHAU4PPgYMO7FTb3BZCxGwkoZnvawiHgyIODx8W6Seo"
-	supabaseClient := supabase.InitSupabase(url, key)
+	ctx := context.Background()
+
+	supabaseClient := supabase.InitSupabase(config.Database.SupabaseUrl, config.Database.SupabaseKey)
 
 	_ = level.Debug(logger).Log("msg", "supabase client initialized")
 
-	bccr := "https://gee.bccr.fi.cr/indicadoreseconomicos/Cuadros/frmVerCatCuadro.aspx?CodCuadro=400&Idioma=1&FecInicial=%s&FecFinal=%s&Filtro=0"
-	scrapper := scrapper.NewBCCRScrapper(logger, bccr)
+	scrapper := scrapper.NewBCCRScrapper(logger, config.Scrapper.ExchangeRateUrl)
 
 	_ = level.Debug(logger).Log("msg", "BCCR scrapper initialized")
 
@@ -46,11 +49,7 @@ func (ws *WebServer) StartServer() {
 
 	errs := make(chan error)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8081"
-	}
-	var httpAddr = flag.String("http", fmt.Sprintf(":%s", port), "http listen address")
+	var httpAddr = flag.String("http", fmt.Sprintf(":%s", config.Address.Port), "http listen address")
 
 	flag.Parse()
 
