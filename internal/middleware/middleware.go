@@ -16,14 +16,12 @@ const (
 	AllowedHeaders     = "Origin, Referer, Accept, Accept-Encoding, Accept-Language, x-requested-with, Content-Type, Content-Length, Authorization"
 )
 
-var AllowedOrigins = []string{"localhost"}
-
-func CORSPolicies(allMethods []string) mux.MiddlewareFunc {
+func CORSPolicies(allMethods []string, allowedOrigins []string) mux.MiddlewareFunc {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			var allowedOrigin = ""
 			var ref = r.Header.Get("Origin")
-			for _, v := range AllowedOrigins {
+			for _, v := range allowedOrigins {
 				if strings.Contains(ref, v) {
 					allowedOrigin = ref
 				}
