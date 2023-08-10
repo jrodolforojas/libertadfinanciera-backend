@@ -9,7 +9,7 @@ type ServerConfig struct {
 }
 
 type AddressConfig struct {
-	Port           string   `env:"PORT" envDefault:":8081"`
+	Port           string   `env:"PORT"`
 	AllowedOrigins []string `env:"ALLOWED_ORIGINS"`
 }
 
