@@ -43,6 +43,12 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 		encodeResponse,
 	))
 
+	router.Methods(http.MethodGet).Path("/tbp").Handler(httptransport.NewServer(
+		endpoints.GetBasicPassiveRates,
+		decodeGetAllDolarColonesChangesRequest,
+		encodeResponse,
+	))
+
 	return router
 }
 

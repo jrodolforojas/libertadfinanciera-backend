@@ -10,12 +10,14 @@ import (
 type Endpoints struct {
 	GetAllDolarColonesChanges endpoint.Endpoint
 	GetTodayExchangeRate      endpoint.Endpoint
+	GetBasicPassiveRates      endpoint.Endpoint
 }
 
 func MakeEndpoints(s *ServiceAPI) Endpoints {
 	return Endpoints{
 		GetAllDolarColonesChanges: makeGetAllDolarColonesChangesEndpoint(s),
 		GetTodayExchangeRate:      makeGetTodayExchangeRateEndpoint(s),
+		GetBasicPassiveRates:      makeGetBasicPassiveRatesEndpoint(s),
 	}
 }
 
@@ -39,6 +41,18 @@ func makeGetTodayExchangeRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 		}
 		result := s.GetTodayExchangeRate(ctx, req)
 
+		return result, nil
+	}
+}
+
+func makeGetBasicPassiveRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req, ok := request.(GetAllDollarColonesChangesRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+		}
+
+		result := s.GetBasicPassiveRates(ctx, req)
 		return result, nil
 	}
 }

@@ -15,3 +15,10 @@ type GetTodayExchangeRateResponse struct {
 }
 
 func (r GetTodayExchangeRateResponse) error() error { return r.Err }
+
+type GetBasicPassiveRatesResponse struct {
+	BasicPassiveRates []models.BasicPassiveRate `json:"data"`
+	Err               error                     `json:"error,omitempty"`
+}
+
+func (r GetBasicPassiveRatesResponse) error() error { return r.Err }

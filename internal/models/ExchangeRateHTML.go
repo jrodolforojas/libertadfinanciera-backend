@@ -61,3 +61,31 @@ func (exchangeRateHTML ExchangeRateHTML) ToExchangeRate() (ExchangeRate, error) 
 		Date:      date,
 	}, nil
 }
+
+func (basicPassiveRateHTML BasicPassiveRateHTML) ToBasicPassiveRate() (BasicPassiveRate, error) {
+	valueHTML := strings.ReplaceAll(basicPassiveRateHTML.Value, ",", ".")
+	value, err := strconv.ParseFloat(valueHTML, 64)
+	if err != nil && valueHTML != "" {
+		return BasicPassiveRate{}, err
+	}
+
+	dateArray := strings.Split(basicPassiveRateHTML.Date, " ") // 0: Day, 1: Month, 2: Year
+	year, err := strconv.Atoi(dateArray[2])
+	if err != nil {
+		return BasicPassiveRate{}, err
+	}
+
+	day, err := strconv.Atoi(dateArray[0])
+	if err != nil {
+		return BasicPassiveRate{}, err
+	}
+
+	month := months[dateArray[1]]
+
+	date := time.Date(year, time.Month(month), day, 12, 0, 0, 0, time.UTC)
+
+	return BasicPassiveRate{
+		Value: value,
+		Date:  date,
+	}, nil
+}

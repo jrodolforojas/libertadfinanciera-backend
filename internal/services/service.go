@@ -15,6 +15,7 @@ import (
 type Service interface {
 	GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse
 	GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse
+	GetBasicPassiveRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetBasicPassiveRatesResponse
 }
 
 type ServiceAPI struct {
@@ -76,5 +77,17 @@ func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetToda
 	return &GetTodayExchangeRateResponse{
 		ExchangesRate: todayExchangeRate,
 		Err:           nil,
+	}
+}
+
+func (service *ServiceAPI) GetBasicPassiveRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetBasicPassiveRatesResponse {
+	basicPassiveRates, err := service.Scrapper.GetBasicPassiveRateByDates(req.DateFrom, req.DateTo)
+
+	sort.Slice(basicPassiveRates, func(i, j int) bool {
+		return basicPassiveRates[i].Date.Before(basicPassiveRates[j].Date)
+	})
+	return &GetBasicPassiveRatesResponse{
+		BasicPassiveRates: basicPassiveRates,
+		Err:               err,
 	}
 }
