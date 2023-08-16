@@ -15,6 +15,7 @@ type Scrapper interface {
 	GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error)
 	GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error)
 	GetBasicPassiveRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.BasicPassiveRate, error)
+	GetBasicPassiveDateByDate(date time.Time) (*models.BasicPassiveRate, error)
 }
 
 type BCCRScrapper struct {
@@ -157,4 +158,35 @@ func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dat
 	collyCollector.Visit(url)
 
 	return basicPassiveRates, nil
+}
+
+func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models.BasicPassiveRate, error) {
+	url := scrapper.getScrappingUrl(scrapper.basicPassiveRateUrl, date, date)
+
+	collyCollector := colly.NewCollector()
+
+	basicPassiveRate := models.BasicPassiveRate{}
+
+	collyCollector.OnHTML("#Table17", func(h *colly.HTMLElement) {
+		valueHTML := h.ChildText("#Table17 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(2) > p")
+		dateHTML := h.ChildText("#Table17 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(1) > p")
+		yearHTML := h.ChildText("#Table17 > tbody > tr:nth-child(1) > td:nth-child(2) > span > table > tbody > tr > td.celda17 > p")
+
+		basicPassiveRateHTML := models.BasicPassiveRateHTML{
+			Value: valueHTML,
+			Date:  dateHTML + " " + yearHTML,
+		}
+
+		toBasicPassiveRate, err := basicPassiveRateHTML.ToBasicPassiveRate()
+		if err != nil {
+			_ = level.Debug(scrapper.logger).Log("msg", "error converting from BasicPassiveRateHTML to BasicPassiveRate models", "error", err)
+			return
+		}
+		basicPassiveRate = toBasicPassiveRate
+		basicPassiveRate.Date = date
+	})
+
+	collyCollector.Visit(url)
+
+	return &basicPassiveRate, nil
 }

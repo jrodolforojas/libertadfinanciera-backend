@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -18,7 +17,6 @@ const (
 )
 
 func CORSPolicies(allMethods []string, allowedOrigins []string) mux.MiddlewareFunc {
-	fmt.Println("allowed origins: ", allowedOrigins)
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			var allowedOrigin = ""
