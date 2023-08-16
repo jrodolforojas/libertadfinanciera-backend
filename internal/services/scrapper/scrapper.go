@@ -14,26 +14,30 @@ import (
 type Scrapper interface {
 	GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error)
 	GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error)
+	GetBasicPassiveRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.BasicPassiveRate, error)
+	GetBasicPassiveDateByDate(date time.Time) (*models.BasicPassiveRate, error)
 }
 
 type BCCRScrapper struct {
-	logger log.Logger
-	url    string
+	logger              log.Logger
+	url                 string
+	basicPassiveRateUrl string
 }
 
-func NewBCCRScrapper(logger log.Logger, url string) *BCCRScrapper {
+func NewBCCRScrapper(logger log.Logger, url string, basicPassiveRateUrl string) *BCCRScrapper {
 	return &BCCRScrapper{
-		logger: logger,
-		url:    url,
+		logger:              logger,
+		url:                 url,
+		basicPassiveRateUrl: basicPassiveRateUrl,
 	}
 }
 
-func (scrapper *BCCRScrapper) getScrappingUrl(dateFrom time.Time, dateTo time.Time) string {
-	return fmt.Sprintf(scrapper.url, dateFrom.Format(utils.DATE_FORMAT), dateTo.Format(utils.DATE_FORMAT))
+func (scrapper *BCCRScrapper) getScrappingUrl(url string, dateFrom time.Time, dateTo time.Time) string {
+	return fmt.Sprintf(url, dateFrom.Format(utils.DATE_FORMAT), dateTo.Format(utils.DATE_FORMAT))
 }
 
 func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error) {
-	url := scrapper.getScrappingUrl(dateFrom, dateTo)
+	url := scrapper.getScrappingUrl(scrapper.url, dateFrom, dateTo)
 
 	collyCollector := colly.NewCollector()
 
@@ -71,7 +75,7 @@ func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, 
 }
 
 func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error) {
-	url := scrapper.getScrappingUrl(date, date)
+	url := scrapper.getScrappingUrl(scrapper.url, date, date)
 	collyCollector := colly.NewCollector()
 
 	todayExchangeRate := models.ExchangeRate{}
@@ -99,4 +103,90 @@ func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.Exc
 	collyCollector.Visit(url)
 
 	return &todayExchangeRate, nil
+}
+
+func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.BasicPassiveRate, error) {
+	url := scrapper.getScrappingUrl(scrapper.basicPassiveRateUrl, dateFrom, dateTo)
+
+	yearFrom := dateFrom.Year()
+	yearTo := dateTo.Year()
+
+	yearDifference := (yearTo - yearFrom) + 2
+
+	collyCollector := colly.NewCollector()
+
+	basicPassiveRates := []models.BasicPassiveRate{}
+
+	collyCollector.OnHTML("#Table17 > tbody", func(h *colly.HTMLElement) {
+		column := h.ChildTexts("#Table17 > tbody > tr > td > span > table > tbody > tr > td")
+
+		yearsHeader := column[1:yearDifference]
+
+		result := [][]string{}
+		for i := yearDifference; i < len(column); i += (len(yearsHeader) + 1) {
+			row := column[i : i+len(yearsHeader)+1]
+			result = append(result, row)
+		}
+
+		var basicPassiveRatesHTML []models.BasicPassiveRateHTML
+		for _, row := range result {
+			values := row[1:] // <-- Get rates without first element (the date)
+			for i := 0; i < len(values); i++ {
+				date := row[0] + " " + yearsHeader[i]
+				value := values[i]
+				if value != "" {
+					basicPassiveRate := models.BasicPassiveRateHTML{
+						Value: value,
+						Date:  date,
+					}
+					basicPassiveRatesHTML = append(basicPassiveRatesHTML, basicPassiveRate)
+				}
+			}
+		}
+
+		for _, basicPassiveRateHTML := range basicPassiveRatesHTML {
+			toBasicPassiveRate, err := basicPassiveRateHTML.ToBasicPassiveRate()
+			if err != nil {
+				_ = level.Debug(scrapper.logger).Log("message", "error converting from html to basic passive rate", "result", result, "error", err)
+				return
+			}
+
+			basicPassiveRates = append(basicPassiveRates, toBasicPassiveRate)
+		}
+	})
+
+	collyCollector.Visit(url)
+
+	return basicPassiveRates, nil
+}
+
+func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models.BasicPassiveRate, error) {
+	url := scrapper.getScrappingUrl(scrapper.basicPassiveRateUrl, date, date)
+
+	collyCollector := colly.NewCollector()
+
+	basicPassiveRate := models.BasicPassiveRate{}
+
+	collyCollector.OnHTML("#Table17", func(h *colly.HTMLElement) {
+		valueHTML := h.ChildText("#Table17 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(2) > p")
+		dateHTML := h.ChildText("#Table17 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(1) > p")
+		yearHTML := h.ChildText("#Table17 > tbody > tr:nth-child(1) > td:nth-child(2) > span > table > tbody > tr > td.celda17 > p")
+
+		basicPassiveRateHTML := models.BasicPassiveRateHTML{
+			Value: valueHTML,
+			Date:  dateHTML + " " + yearHTML,
+		}
+
+		toBasicPassiveRate, err := basicPassiveRateHTML.ToBasicPassiveRate()
+		if err != nil {
+			_ = level.Debug(scrapper.logger).Log("msg", "error converting from BasicPassiveRateHTML to BasicPassiveRate models", "error", err)
+			return
+		}
+		basicPassiveRate = toBasicPassiveRate
+		basicPassiveRate.Date = date
+	})
+
+	collyCollector.Visit(url)
+
+	return &basicPassiveRate, nil
 }
