@@ -106,7 +106,6 @@ func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.Exc
 
 func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.BasicPassiveRate, error) {
 	url := scrapper.getScrappingUrl(scrapper.basicPassiveRateUrl, dateFrom, dateTo)
-	fmt.Println("url ", url)
 
 	yearFrom := dateFrom.Year()
 	yearTo := dateTo.Year()
@@ -130,7 +129,7 @@ func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dat
 
 		var basicPassiveRatesHTML []models.BasicPassiveRateHTML
 		for _, row := range result {
-			values := row[1:]
+			values := row[1:] // <-- Get rates without first element (the date)
 			for i := 0; i < len(values); i++ {
 				date := row[0] + " " + yearsHeader[i]
 				value := values[i]
