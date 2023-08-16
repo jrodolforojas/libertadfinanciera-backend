@@ -117,7 +117,7 @@ func (service *ServiceAPI) GetBasicPassiveRates(ctx context.Context, req GetAllD
 	}
 
 	sort.Slice(basicPassiveRates, func(i, j int) bool {
-		return basicPassiveRates[i].Date.Before(basicPassiveRates[j].Date)
+		return basicPassiveRates[i].Date.After(basicPassiveRates[j].Date)
 	})
 	return &GetBasicPassiveRatesResponse{
 		BasicPassiveRates: basicPassiveRates,
