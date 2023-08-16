@@ -84,3 +84,58 @@ Returns today **************dollar************** ➡️ ****************colones
     }
 }
 ```
+
+### GET `/tbp`
+
+Returns the Basic Passive Rates (TBP). By default, it returns the latest ******30 days****** basic passive rates from `today`
+
+******************Response example******************
+
+```json
+{
+    "data": [
+        {
+            "value": 5.94,
+            "date": "2023-08-14T12:00:00Z"
+        },
+        {
+            "value": 5.94,
+            "date": "2023-08-15T12:00:00Z"
+        },
+        {
+            "value": 5.94,
+            "date": "2023-08-16T12:00:00Z"
+        }
+    ]
+}
+```
+
+Also, **you can filter this endpoint by `date range`**. For example, get the exchange rates from December 04 of 2022 to January 19 of 2023 using `query params`
+
+************Params************
+
+1. `date_from`
+    1. Format: `2023/12/04`
+2. `date_to`
+    1. Format: `2023/12/04`
+
+**************Example**************
+
+```bash
+/tbp?date_from=2000/01/01&date_to=2023/08/16
+```
+
+### GET `/tbp/today`
+
+Returns today basic passive rate.
+
+********************************Response example********************************
+
+```json
+{
+    "data": {
+        "value": 5.94,
+        "date": "2023-08-16T16:49:44.923544-06:00"
+    }
+}
+```
