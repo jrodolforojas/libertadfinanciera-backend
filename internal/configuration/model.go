@@ -14,8 +14,12 @@ type AddressConfig struct {
 }
 
 type ScrapperConfig struct {
-	ExchangeRateUrl     string `env:"EXCHANGE_RATE_URL"`
-	BasicPassiveRateUrl string `env:"TBP_URL"`
+	ExchangeRateUrl       string `env:"EXCHANGE_RATE_URL"`
+	BasicPassiveRateUrl   string `env:"TBP_URL"`
+	MonetaryPolicyRateUrl string `env:"MONETARY_POLICY_RATE_URL"`
+	PrimeRateUrl          string `env:"PRIME_RATE_URL"`
+	InflationCostaRicaUrl string `env:"INFLATION_COSTA_RICA_URL"`
+	InflationUSAUrl       string `env:"INFLATION_USA_URL"`
 }
 
 type DatabaseConfig struct {
