@@ -117,3 +117,31 @@ func (monetaryPolicyRateHTML MonetaryPolicyRateHTML) ToMonetaryPolicyRate() (Mon
 		Date:  date,
 	}, nil
 }
+
+func (primeRate PrimeRateHTML) ToPrimeRate() (PrimeRate, error) {
+	valueHTML := strings.ReplaceAll(primeRate.Value, ",", ".")
+	value, err := strconv.ParseFloat(valueHTML, 64)
+	if err != nil && valueHTML != "" {
+		return PrimeRate{}, err
+	}
+
+	dateArray := strings.Split(primeRate.Date, " ") // 0: Day, 1: Month, 2: Year
+	year, err := strconv.Atoi(dateArray[2])
+	if err != nil {
+		return PrimeRate{}, err
+	}
+
+	day, err := strconv.Atoi(dateArray[0])
+	if err != nil {
+		return PrimeRate{}, err
+	}
+
+	month := months[dateArray[1]]
+
+	date := time.Date(year, time.Month(month), day, 12, 0, 0, 0, time.UTC)
+
+	return PrimeRate{
+		Value: value,
+		Date:  date,
+	}, nil
+}

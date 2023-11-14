@@ -43,3 +43,17 @@ type GetTodayMonetaryPolicyRateResponse struct {
 }
 
 func (r GetTodayMonetaryPolicyRateResponse) error() error { return r.Err }
+
+type GetPrimeRatesResponse struct {
+	PrimeRates []models.PrimeRate `json:"data"`
+	Err        error              `json:"error,omitempty"`
+}
+
+func (r GetPrimeRatesResponse) error() error { return r.Err }
+
+type GetTodayPrimeRateResponse struct {
+	PrimeRate *models.PrimeRate `json:"data"`
+	Err       error             `json:"error,omitempty"`
+}
+
+func (r GetTodayPrimeRateResponse) error() error { return r.Err }

@@ -19,6 +19,7 @@ type Service interface {
 	GetTodayBasicPassiveRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayBasicPassiveRateResponse
 	GetMonetaryPolicyRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetMonetaryPolicyRatesResponse
 	GetTodayMonetaryPolicyRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayMonetaryPolicyRateResponse
+	GetPrimeRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetMonetaryPolicyRatesResponse
 }
 
 type ServiceAPI struct {
@@ -200,5 +201,45 @@ func (service *ServiceAPI) GetTodayMonetaryPolicyRate(ctx context.Context, req G
 	return &GetTodayMonetaryPolicyRateResponse{
 		MonetaryPolicyRate: todayMonetaryPolicyRate,
 		Err:                err,
+	}
+}
+
+func (service *ServiceAPI) GetPrimeRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetPrimeRatesResponse {
+	yearDifference := req.DateTo.Year() - req.DateFrom.Year()
+	var primeRates []models.PrimeRate
+
+	const MAXIMUM_PRIME_RATE_YEAR = 9
+	dateFrom := req.DateFrom
+	for {
+		if yearDifference >= MAXIMUM_PRIME_RATE_YEAR {
+			newDateTo := service.addYears(dateFrom, MAXIMUM_PRIME_RATE_YEAR)
+			result, err := service.Scrapper.GetPrimeRateByDates(dateFrom, newDateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+					"date_from", dateFrom, "date_to", newDateTo)
+				break
+			}
+			primeRates = append(primeRates, result...)
+			dateFrom = newDateTo.AddDate(0, 0, 1)
+			yearDifference = req.DateTo.Year() - dateFrom.Year()
+
+		} else {
+			result, err := service.Scrapper.GetPrimeRateByDates(dateFrom, req.DateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+					"date_from", dateFrom, "date_to", req.DateTo)
+				break
+			}
+			primeRates = append(primeRates, result...)
+			break
+		}
+	}
+
+	sort.Slice(primeRates, func(i, j int) bool {
+		return primeRates[i].Date.After(primeRates[j].Date)
+	})
+	return &GetPrimeRatesResponse{
+		PrimeRates: primeRates,
+		Err:        nil,
 	}
 }
