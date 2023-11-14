@@ -37,7 +37,7 @@ func (ws *WebServer) StartServer() {
 
 	_ = level.Debug(logger).Log("msg", "supabase client initialized")
 
-	scrapper := scrapper.NewBCCRScrapper(logger, config.Scrapper.ExchangeRateUrl, config.Scrapper.BasicPassiveRateUrl)
+	scrapper := scrapper.NewBCCRScrapper(logger, config.Scrapper)
 
 	_ = level.Debug(logger).Log("msg", "BCCR scrapper initialized")
 

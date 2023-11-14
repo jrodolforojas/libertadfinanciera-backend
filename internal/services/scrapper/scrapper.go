@@ -7,6 +7,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/go-kit/log"
 	"github.com/gocolly/colly/v2"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/configuration"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/models"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/utils"
 )
@@ -16,19 +17,19 @@ type Scrapper interface {
 	GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error)
 	GetBasicPassiveRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.BasicPassiveRate, error)
 	GetBasicPassiveDateByDate(date time.Time) (*models.BasicPassiveRate, error)
+	GetMonetaryPolicyRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.MonetaryPolicyRate, error)
+	GetMonetaryPolicyRateByDate(date time.Time) (*models.MonetaryPolicyRate, error)
 }
 
 type BCCRScrapper struct {
-	logger              log.Logger
-	url                 string
-	basicPassiveRateUrl string
+	logger log.Logger
+	urls   configuration.ScrapperConfig
 }
 
-func NewBCCRScrapper(logger log.Logger, url string, basicPassiveRateUrl string) *BCCRScrapper {
+func NewBCCRScrapper(logger log.Logger, urls configuration.ScrapperConfig) *BCCRScrapper {
 	return &BCCRScrapper{
-		logger:              logger,
-		url:                 url,
-		basicPassiveRateUrl: basicPassiveRateUrl,
+		logger: logger,
+		urls:   urls,
 	}
 }
 
@@ -37,7 +38,7 @@ func (scrapper *BCCRScrapper) getScrappingUrl(url string, dateFrom time.Time, da
 }
 
 func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.url, dateFrom, dateTo)
+	url := scrapper.getScrappingUrl(scrapper.urls.ExchangeRateUrl, dateFrom, dateTo)
 
 	collyCollector := colly.NewCollector()
 
@@ -75,7 +76,7 @@ func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, 
 }
 
 func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.url, date, date)
+	url := scrapper.getScrappingUrl(scrapper.urls.ExchangeRateUrl, date, date)
 	collyCollector := colly.NewCollector()
 
 	todayExchangeRate := models.ExchangeRate{}
@@ -106,7 +107,7 @@ func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.Exc
 }
 
 func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.BasicPassiveRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.basicPassiveRateUrl, dateFrom, dateTo)
+	url := scrapper.getScrappingUrl(scrapper.urls.BasicPassiveRateUrl, dateFrom, dateTo)
 
 	yearFrom := dateFrom.Year()
 	yearTo := dateTo.Year()
@@ -161,7 +162,7 @@ func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dat
 }
 
 func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models.BasicPassiveRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.basicPassiveRateUrl, date, date)
+	url := scrapper.getScrappingUrl(scrapper.urls.BasicPassiveRateUrl, date, date)
 
 	collyCollector := colly.NewCollector()
 
@@ -189,4 +190,89 @@ func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models
 	collyCollector.Visit(url)
 
 	return &basicPassiveRate, nil
+}
+
+func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.MonetaryPolicyRate, error) {
+	url := scrapper.getScrappingUrl(scrapper.urls.MonetaryPolicyRateUrl, dateFrom, dateTo)
+
+	yearFrom := dateFrom.Year()
+	yearTo := dateTo.Year()
+
+	yearDifference := (yearTo - yearFrom) + 2
+
+	collyCollector := colly.NewCollector()
+
+	monetaryPolicyRates := []models.MonetaryPolicyRate{}
+
+	collyCollector.OnHTML("#Table779 > tbody", func(h *colly.HTMLElement) {
+		column := h.ChildTexts("#Table779 > tbody > tr > td > span > table > tbody > tr > td")
+
+		yearsHeader := column[1:yearDifference]
+
+		result := [][]string{}
+		for i := yearDifference; i < len(column); i += (len(yearsHeader) + 1) {
+			row := column[i : i+len(yearsHeader)+1]
+			result = append(result, row)
+		}
+
+		var monetaryPolicyRatesHTML []models.MonetaryPolicyRateHTML
+		for _, row := range result {
+			values := row[1:] // <-- Get rates without first element (the date)
+			for i := 0; i < len(values); i++ {
+				date := row[0] + " " + yearsHeader[i]
+				value := values[i]
+				if value != "" {
+					monetaryPolicyRate := models.MonetaryPolicyRateHTML{
+						Value: value,
+						Date:  date,
+					}
+					monetaryPolicyRatesHTML = append(monetaryPolicyRatesHTML, monetaryPolicyRate)
+				}
+			}
+		}
+		for _, monetaryPolicyRateHTML := range monetaryPolicyRatesHTML {
+			toMonetaryPolicyRate, err := monetaryPolicyRateHTML.ToMonetaryPolicyRate()
+			if err != nil {
+				_ = level.Debug(scrapper.logger).Log("message", "error converting from html to monetary policy rate", "result", result, "error", err)
+				return
+			}
+
+			monetaryPolicyRates = append(monetaryPolicyRates, toMonetaryPolicyRate)
+		}
+	})
+
+	collyCollector.Visit(url)
+
+	return monetaryPolicyRates, nil
+}
+
+func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDate(date time.Time) (*models.MonetaryPolicyRate, error) {
+	url := scrapper.getScrappingUrl(scrapper.urls.MonetaryPolicyRateUrl, date, date)
+
+	collyCollector := colly.NewCollector()
+
+	monetaryPolicyRate := models.MonetaryPolicyRate{}
+
+	collyCollector.OnHTML("#Table779", func(h *colly.HTMLElement) {
+		valueHTML := h.ChildText("#Table779 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(2) > p")
+		dateHTML := h.ChildText("#Table779 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(1) > p")
+		yearHTML := h.ChildText("#Table779 > tbody > tr:nth-child(1) > td:nth-child(2) > span > table > tbody > tr > td.celda779 > p")
+
+		monetaryPolicyRateHTML := models.MonetaryPolicyRateHTML{
+			Value: valueHTML,
+			Date:  dateHTML + " " + yearHTML,
+		}
+
+		toMonetaryPolicyRate, err := monetaryPolicyRateHTML.ToMonetaryPolicyRate()
+		if err != nil {
+			_ = level.Debug(scrapper.logger).Log("msg", "error converting from MonetaryPolicyRateHTML to MonetaryPolicyRate models", "error", err)
+			return
+		}
+		monetaryPolicyRate = toMonetaryPolicyRate
+		monetaryPolicyRate.Date = date
+	})
+
+	collyCollector.Visit(url)
+
+	return &monetaryPolicyRate, nil
 }

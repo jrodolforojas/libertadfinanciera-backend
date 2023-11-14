@@ -17,6 +17,8 @@ type Service interface {
 	GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse
 	GetBasicPassiveRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetBasicPassiveRatesResponse
 	GetTodayBasicPassiveRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayBasicPassiveRateResponse
+	GetMonetaryPolicyRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetMonetaryPolicyRatesResponse
+	GetTodayMonetaryPolicyRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayMonetaryPolicyRateResponse
 }
 
 type ServiceAPI struct {
@@ -83,8 +85,8 @@ func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetToda
 
 const MAXIMUM_BASIC_PASSIVE_RATE_YEAR = 12
 
-func (service *ServiceAPI) add12years(dateFrom time.Time) time.Time {
-	return dateFrom.AddDate(MAXIMUM_BASIC_PASSIVE_RATE_YEAR-1, 0, 0)
+func (service *ServiceAPI) addYears(dateFrom time.Time, years int) time.Time {
+	return dateFrom.AddDate(years-1, 0, 0)
 }
 func (service *ServiceAPI) GetBasicPassiveRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetBasicPassiveRatesResponse {
 	yearDifference := req.DateTo.Year() - req.DateFrom.Year()
@@ -93,7 +95,7 @@ func (service *ServiceAPI) GetBasicPassiveRates(ctx context.Context, req GetAllD
 	dateFrom := req.DateFrom
 	for {
 		if yearDifference >= MAXIMUM_BASIC_PASSIVE_RATE_YEAR {
-			newDateTo := service.add12years(dateFrom)
+			newDateTo := service.addYears(dateFrom, MAXIMUM_BASIC_PASSIVE_RATE_YEAR)
 			result, err := service.Scrapper.GetBasicPassiveRateByDates(dateFrom, newDateTo)
 			if err != nil {
 				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
@@ -140,5 +142,63 @@ func (service *ServiceAPI) GetTodayBasicPassiveRate(ctx context.Context, req Get
 	return &GetTodayBasicPassiveRateResponse{
 		BasicPassiveRate: todayBasicPassiveRate,
 		Err:              nil,
+	}
+}
+
+func (service *ServiceAPI) GetMonetaryPolicyRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetMonetaryPolicyRatesResponse {
+	yearDifference := req.DateTo.Year() - req.DateFrom.Year()
+	var monetaryPolicyRates []models.MonetaryPolicyRate
+
+	const MAXIMUM_MONETARY_POLICY_RATE_YEAR = 5
+	dateFrom := req.DateFrom
+	for {
+		if yearDifference >= MAXIMUM_MONETARY_POLICY_RATE_YEAR {
+			newDateTo := service.addYears(dateFrom, MAXIMUM_MONETARY_POLICY_RATE_YEAR)
+			result, err := service.Scrapper.GetMonetaryPolicyRateByDates(dateFrom, newDateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+					"date_from", dateFrom, "date_to", newDateTo)
+				break
+			}
+			monetaryPolicyRates = append(monetaryPolicyRates, result...)
+			dateFrom = newDateTo.AddDate(0, 0, 1)
+			yearDifference = req.DateTo.Year() - dateFrom.Year()
+
+		} else {
+			result, err := service.Scrapper.GetMonetaryPolicyRateByDates(dateFrom, req.DateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+					"date_from", dateFrom, "date_to", req.DateTo)
+				break
+			}
+			monetaryPolicyRates = append(monetaryPolicyRates, result...)
+			break
+		}
+	}
+
+	sort.Slice(monetaryPolicyRates, func(i, j int) bool {
+		return monetaryPolicyRates[i].Date.After(monetaryPolicyRates[j].Date)
+	})
+	return &GetMonetaryPolicyRatesResponse{
+		MonetaryPolicyRates: monetaryPolicyRates,
+		Err:                 nil,
+	}
+}
+
+func (service *ServiceAPI) GetTodayMonetaryPolicyRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayMonetaryPolicyRateResponse {
+	date := time.Now()
+	todayMonetaryPolicyRate, err := service.Scrapper.GetMonetaryPolicyRateByDate(date)
+	if err != nil {
+		_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rate by date", "date", date,
+			"error", err)
+		return &GetTodayMonetaryPolicyRateResponse{
+			MonetaryPolicyRate: nil,
+			Err:                err,
+		}
+	}
+
+	return &GetTodayMonetaryPolicyRateResponse{
+		MonetaryPolicyRate: todayMonetaryPolicyRate,
+		Err:                err,
 	}
 }

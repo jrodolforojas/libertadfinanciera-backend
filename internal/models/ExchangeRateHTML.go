@@ -89,3 +89,31 @@ func (basicPassiveRateHTML BasicPassiveRateHTML) ToBasicPassiveRate() (BasicPass
 		Date:  date,
 	}, nil
 }
+
+func (monetaryPolicyRateHTML MonetaryPolicyRateHTML) ToMonetaryPolicyRate() (MonetaryPolicyRate, error) {
+	valueHTML := strings.ReplaceAll(monetaryPolicyRateHTML.Value, ",", ".")
+	value, err := strconv.ParseFloat(valueHTML, 64)
+	if err != nil && valueHTML != "" {
+		return MonetaryPolicyRate{}, err
+	}
+
+	dateArray := strings.Split(monetaryPolicyRateHTML.Date, " ") // 0: Day, 1: Month, 2: Year
+	year, err := strconv.Atoi(dateArray[2])
+	if err != nil {
+		return MonetaryPolicyRate{}, err
+	}
+
+	day, err := strconv.Atoi(dateArray[0])
+	if err != nil {
+		return MonetaryPolicyRate{}, err
+	}
+
+	month := months[dateArray[1]]
+
+	date := time.Date(year, time.Month(month), day, 12, 0, 0, 0, time.UTC)
+
+	return MonetaryPolicyRate{
+		Value: value,
+		Date:  date,
+	}, nil
+}
