@@ -69,7 +69,11 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 		decodeGetAllDolarColonesChangesRequest,
 		encodeResponse,
 	))
-
+	router.Methods(http.MethodGet).Path("/prime_rates/today").Handler(httptransport.NewServer(
+		endpoints.GetPrimeRate,
+		decodeTodayExchangeRateRequest,
+		encodeResponse,
+	))
 	return router
 }
 

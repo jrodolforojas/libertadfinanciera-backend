@@ -19,7 +19,8 @@ type Service interface {
 	GetTodayBasicPassiveRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayBasicPassiveRateResponse
 	GetMonetaryPolicyRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetMonetaryPolicyRatesResponse
 	GetTodayMonetaryPolicyRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayMonetaryPolicyRateResponse
-	GetPrimeRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetMonetaryPolicyRatesResponse
+	GetPrimeRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetPrimeRatesResponse
+	GetTodayPrimeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayPrimeRateResponse
 }
 
 type ServiceAPI struct {
@@ -241,5 +242,23 @@ func (service *ServiceAPI) GetPrimeRates(ctx context.Context, req GetAllDollarCo
 	return &GetPrimeRatesResponse{
 		PrimeRates: primeRates,
 		Err:        nil,
+	}
+}
+
+func (service *ServiceAPI) GetTodayPrimeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayPrimeRateResponse {
+	date := time.Now()
+	todayPrimeRate, err := service.Scrapper.GetPrimeRateByDate(date)
+	if err != nil {
+		_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rate by date", "date", date,
+			"error", err)
+		return &GetTodayPrimeRateResponse{
+			PrimeRate: nil,
+			Err:       err,
+		}
+	}
+
+	return &GetTodayPrimeRateResponse{
+		PrimeRate: todayPrimeRate,
+		Err:       err,
 	}
 }
