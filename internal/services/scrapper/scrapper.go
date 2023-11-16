@@ -25,6 +25,7 @@ type Scrapper interface {
 	GetCostaRicaInflationRateByDate(date time.Time) (*models.CostaRicaInflationRate, error)
 	GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error)
 	GetTreasuryRateUSAByDate(date time.Time) (*models.TreasuryRateUSA, error)
+	GetUSAInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.USAInflationRate, error)
 }
 
 type BCCRScrapper struct {
@@ -436,6 +437,24 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*
 	collyCollector.Visit(url)
 
 	return &inflationRate, nil
+}
+
+func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.USAInflationRate, error) {
+	url := scrapper.urls.InflationUSAUrl
+	_ = level.Debug(scrapper.logger).Log("url", url)
+
+	collyCollector := colly.NewCollector()
+
+	inflationRates := []models.USAInflationRate{}
+
+	collyCollector.OnHTML("#EditableTables > tbody", func(h *colly.HTMLElement) {
+		columns := h.ChildTexts("#EditableTables > tbody > tr")
+		_ = level.Debug(scrapper.logger).Log("columns", columns)
+	})
+
+	collyCollector.Visit(url)
+
+	return inflationRates, nil
 }
 
 func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error) {

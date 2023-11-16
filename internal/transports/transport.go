@@ -95,6 +95,11 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 		decodeTodayExchangeRateRequest,
 		encodeResponse,
 	))
+	router.Methods(http.MethodGet).Path("/inflation_rates/usa").Handler(httptransport.NewServer(
+		endpoints.GetUSAInflationRates,
+		decodeGetAllDolarColonesChangesRequest,
+		encodeResponse,
+	))
 	return router
 }
 
