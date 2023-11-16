@@ -71,3 +71,17 @@ type GetTodayCostaRicaInflationRateResponse struct {
 }
 
 func (r GetTodayCostaRicaInflationRateResponse) error() error { return r.Err }
+
+type GetTreasuryRatesUSAResponse struct {
+	TreasuryRatesUSA []models.TreasuryRateUSA `json:"data"`
+	Err              error                    `json:"error,omitempty"`
+}
+
+func (r GetTreasuryRatesUSAResponse) error() error { return r.Err }
+
+type GetTodayTreasuryRateUSAResponse struct {
+	TreasuryRateUSA *models.TreasuryRateUSA `json:"data"`
+	Err             error                   `json:"error,omitempty"`
+}
+
+func (r GetTodayTreasuryRateUSAResponse) error() error { return r.Err }

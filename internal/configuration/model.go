@@ -20,6 +20,7 @@ type ScrapperConfig struct {
 	PrimeRateUrl          string `env:"PRIME_RATE_URL"`
 	InflationCostaRicaUrl string `env:"INFLATION_COSTA_RICA_URL"`
 	InflationUSAUrl       string `env:"INFLATION_USA_URL"`
+	TreasuryRateUSAUrl		string `env:"TREASURY_RATE_USA_URL"`
 }
 
 type DatabaseConfig struct {

@@ -23,6 +23,8 @@ type Service interface {
 	GetTodayPrimeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayPrimeRateResponse
 	GetCostaRicaInflationRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetCostaRicaInflationRatesResponse
 	GetCostaRicaInflationRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayCostaRicaInflationRateResponse
+	GetTreasuryRatesUSA(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetTreasuryRatesUSAResponse
+	GetTodayTreasuryRateUSA(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayTreasuryRateUSAResponse
 }
 
 type ServiceAPI struct {
@@ -317,5 +319,57 @@ func (service *ServiceAPI) GetCostaRicaInflationRate(ctx context.Context, req Ge
 	return &GetTodayCostaRicaInflationRateResponse{
 		InflationRate: todayCostaRicaInflationRate,
 		Err:           err,
+	}
+}
+
+func (service *ServiceAPI) GetTreasuryRatesUSA(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetTreasuryRatesUSAResponse {
+	treasuryRates := []models.TreasuryRateUSA{}
+	dateFrom := req.DateFrom
+	for {
+		if dateFrom.Month() == req.DateTo.Month() && dateFrom.Year() == req.DateTo.Year() {
+			result, err := service.Scrapper.GetTreasuryRateUSAByDates(dateFrom, req.DateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+					"date_from", req.DateFrom, "date_to", req.DateTo)
+				break
+			}
+			treasuryRates = append(treasuryRates, result...)
+			break
+		}
+		dateTo := dateFrom.AddDate(0, 1, 0) // add 1 month to dateFrom
+		result, err := service.Scrapper.GetTreasuryRateUSAByDates(dateFrom, dateTo)
+		if err != nil {
+			_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+				"date_from", req.DateFrom, "date_to", req.DateTo)
+			break
+		}
+		treasuryRates = append(treasuryRates, result...)
+		dateFrom = dateTo
+	}
+
+	sort.Slice(treasuryRates, func(i, j int) bool {
+		return treasuryRates[i].Date.After(treasuryRates[j].Date)
+	})
+	return &GetTreasuryRatesUSAResponse{
+		TreasuryRatesUSA: treasuryRates,
+		Err:              nil,
+	}
+}
+
+func (service *ServiceAPI) GetTodayTreasuryRateUSA(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayTreasuryRateUSAResponse {
+	date := time.Now()
+	todayTreasuryRateUSA, err := service.Scrapper.GetTreasuryRateUSAByDate(date)
+	if err != nil {
+		_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date,
+			"error", err)
+		return &GetTodayTreasuryRateUSAResponse{
+			TreasuryRateUSA: nil,
+			Err:             err,
+		}
+	}
+
+	return &GetTodayTreasuryRateUSAResponse{
+		TreasuryRateUSA: todayTreasuryRateUSA,
+		Err:             err,
 	}
 }

@@ -23,6 +23,8 @@ type Scrapper interface {
 	GetPrimeRateByDate(date time.Time) (*models.PrimeRate, error)
 	GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.CostaRicaInflationRate, error)
 	GetCostaRicaInflationRateByDate(date time.Time) (*models.CostaRicaInflationRate, error)
+	GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error)
+	GetTreasuryRateUSAByDate(date time.Time) (*models.TreasuryRateUSA, error)
 }
 
 type BCCRScrapper struct {
@@ -434,4 +436,74 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*
 	collyCollector.Visit(url)
 
 	return &inflationRate, nil
+}
+
+func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error) {
+	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, dateFrom, dateTo)
+	_ = level.Debug(scrapper.logger).Log("url", url)
+
+	collyCollector := colly.NewCollector()
+
+	treasuryRates := []models.TreasuryRateUSA{}
+
+	collyCollector.OnHTML("#theTable677 > tbody", func(h *colly.HTMLElement) {
+		columns := h.ChildTexts("#theTable677 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr > td")
+		rates := h.ChildTexts("#col_135401 > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td")
+
+		treasuryRatesHTML := []models.TreasuryRateUSAHTML{}
+		for index, value := range rates {
+			dateHTML := columns[index]
+			if value != "" {
+				treasuryRateHTML := models.TreasuryRateUSAHTML{
+					Value: value,
+					Date:  dateHTML,
+				}
+				treasuryRatesHTML = append(treasuryRatesHTML, treasuryRateHTML)
+			}
+		}
+
+		for _, treasuryRateHTML := range treasuryRatesHTML {
+			treasuryRate, err := toTreasuryRateUSA(treasuryRateHTML)
+			if err != nil {
+				_ = level.Error(scrapper.logger).Log("msg", "error converting from TreasuryRateUSAHTML to TreasuryRateUSA models", "error", err)
+				return
+			}
+			treasuryRates = append(treasuryRates, treasuryRate)
+		}
+	})
+
+	collyCollector.Visit(url)
+
+	return treasuryRates, nil
+}
+
+func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDate(date time.Time) (*models.TreasuryRateUSA, error) {
+	yesterday := date.AddDate(0, 0, -1)
+	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, yesterday, yesterday)
+
+	collyCollector := colly.NewCollector()
+
+	treasuryRate := models.TreasuryRateUSA{}
+
+	collyCollector.OnHTML("#theTable677 > tbody", func(h *colly.HTMLElement) {
+		valueHTML := h.ChildText("#col_135401 > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td")
+		dateHTML := h.ChildText("#theTable677 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr > td")
+
+		treasuryRateHTML := models.TreasuryRateUSAHTML{
+			Value: valueHTML,
+			Date:  dateHTML,
+		}
+
+		rate, err := toTreasuryRateUSA(treasuryRateHTML)
+		if err != nil {
+			_ = level.Debug(scrapper.logger).Log("msg", "error converting from MonetaryPolicyRateHTML to MonetaryPolicyRate models", "error", err)
+			return
+		}
+		treasuryRate = rate
+		treasuryRate.Date = yesterday
+	})
+
+	collyCollector.Visit(url)
+
+	return &treasuryRate, nil
 }

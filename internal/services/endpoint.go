@@ -18,6 +18,8 @@ type Endpoints struct {
 	GetPrimeRate               endpoint.Endpoint
 	GetCostaRicaInflationRates endpoint.Endpoint
 	GetCostaRicaInflationRate  endpoint.Endpoint
+	GetTreasuryRatesUSA        endpoint.Endpoint
+	GetTreasuryRateUSA         endpoint.Endpoint
 }
 
 func MakeEndpoints(s *ServiceAPI) Endpoints {
@@ -32,6 +34,8 @@ func MakeEndpoints(s *ServiceAPI) Endpoints {
 		GetPrimeRate:               makeGetPrimeRateEndpoint(s),
 		GetCostaRicaInflationRates: makeGetCostaRicaInflationRatesEndpoint(s),
 		GetCostaRicaInflationRate:  makeGetCostaRicaInflationRateEndpoint(s),
+		GetTreasuryRatesUSA:        makeGetTreasuryRatesUSAEndpoint(s),
+		GetTreasuryRateUSA:         makeGetTreasuryRateUSAEndpoint(s),
 	}
 }
 
@@ -150,6 +154,30 @@ func makeGetCostaRicaInflationRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
 		}
 		result := s.GetCostaRicaInflationRate(ctx, req)
+
+		return result, nil
+	}
+}
+
+func makeGetTreasuryRatesUSAEndpoint(s *ServiceAPI) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req, ok := request.(GetAllDollarColonesChangesRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+		}
+		result := s.GetTreasuryRatesUSA(ctx, req)
+
+		return result, nil
+	}
+}
+
+func makeGetTreasuryRateUSAEndpoint(s *ServiceAPI) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req, ok := request.(GetTodayExchangeRateRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+		}
+		result := s.GetTodayTreasuryRateUSA(ctx, req)
 
 		return result, nil
 	}
