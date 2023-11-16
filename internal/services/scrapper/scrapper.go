@@ -400,5 +400,4 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Tim
 	collyCollector.Visit(url)
 
 	return inflationRates, nil
-
 }

@@ -265,18 +265,38 @@ func (service *ServiceAPI) GetTodayPrimeRate(ctx context.Context, req GetTodayEx
 }
 
 func (service *ServiceAPI) GetCostaRicaInflationRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetCostaRicaInflationRatesResponse {
-	result, err := service.Scrapper.GetCostaRicaInflationRateByDates(req.DateFrom, req.DateTo)
-	if err != nil {
-		_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
-			"date_from", req.DateFrom, "date_to", req.DateTo)
-		return &GetCostaRicaInflationRatesResponse{
-			InflationRates: nil,
-			Err:            err,
+	inflationRates := []models.CostaRicaInflationRate{}
+	dateFrom := req.DateFrom
+	dateTo := time.Date(dateFrom.Year()+1, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+	for {
+		if req.DateTo.Year() == dateTo.Year() {
+			dateFrom = time.Date(req.DateTo.Year(), time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+			dateTo = time.Date(req.DateTo.Year(), time.Month(req.DateTo.Month()), 1, 0, 0, 0, 0, time.UTC)
+			result, err := service.Scrapper.GetCostaRicaInflationRateByDates(dateFrom, dateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+					"date_from", req.DateFrom, "date_to", req.DateTo)
+				break
+			}
+			inflationRates = append(inflationRates, result...)
+			break
 		}
+		result, err := service.Scrapper.GetCostaRicaInflationRateByDates(dateFrom, dateTo)
+		if err != nil {
+			_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
+				"date_from", req.DateFrom, "date_to", req.DateTo)
+			break
+		}
+		inflationRates = append(inflationRates, result...)
+		dateFrom = time.Date(dateFrom.Year()+1, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+		dateTo = time.Date(dateFrom.Year()+1, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	}
 
+	sort.Slice(inflationRates, func(i, j int) bool {
+		return inflationRates[i].Date.After(inflationRates[j].Date)
+	})
 	return &GetCostaRicaInflationRatesResponse{
-		InflationRates: result,
-		Err:            err,
+		InflationRates: inflationRates,
+		Err:            nil,
 	}
 }
