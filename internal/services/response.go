@@ -57,3 +57,10 @@ type GetTodayPrimeRateResponse struct {
 }
 
 func (r GetTodayPrimeRateResponse) error() error { return r.Err }
+
+type GetCostaRicaInflationRatesResponse struct {
+	InflationRates []models.CostaRicaInflationRate `json:"data"`
+	Err            error                           `json:"error,omitempty"`
+}
+
+func (r GetCostaRicaInflationRatesResponse) error() error { return r.Err }

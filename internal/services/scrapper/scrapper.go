@@ -21,6 +21,7 @@ type Scrapper interface {
 	GetMonetaryPolicyRateByDate(date time.Time) (*models.MonetaryPolicyRate, error)
 	GetPrimeRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.PrimeRate, error)
 	GetPrimeRateByDate(date time.Time) (*models.PrimeRate, error)
+	GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.CostaRicaInflationRate, error)
 }
 
 type BCCRScrapper struct {
@@ -362,4 +363,42 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDate(date time.Time) (*models.PrimeR
 	collyCollector.Visit(url)
 
 	return &primeRate, nil
+}
+
+func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.CostaRicaInflationRate, error) {
+	url := scrapper.getScrappingUrl(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo)
+	collyCollector := colly.NewCollector()
+
+	inflationRates := []models.CostaRicaInflationRate{}
+
+	collyCollector.OnHTML("#theTable2732 > tbody", func(h *colly.HTMLElement) {
+		columns := h.ChildTexts("#theTable2732 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr > td")
+		interanualVariation := h.ChildTexts("#theTable2732 > tbody > tr:nth-child(2) > td:nth-child(4) > table > tbody > tr > td > table > tbody > tr > td")
+
+		inflationRatesHTML := []models.CostaRicaInflationRateHTML{}
+		for index, value := range interanualVariation {
+			dateHTML := columns[index]
+			if value != "" {
+				inflationRateHTML := models.CostaRicaInflationRateHTML{
+					Value: value,
+					Date:  dateHTML,
+				}
+				inflationRatesHTML = append(inflationRatesHTML, inflationRateHTML)
+			}
+		}
+
+		for _, inflationRateHTML := range inflationRatesHTML {
+			inflationRate, err := toCostaRicaInflationRate(inflationRateHTML)
+			if err != nil {
+				_ = level.Error(scrapper.logger).Log("msg", "error converting from CostaRicaInflationRateHTML to CostaRicaInflationRate models", "error", err)
+				return
+			}
+			inflationRates = append(inflationRates, inflationRate)
+		}
+	})
+
+	collyCollector.Visit(url)
+
+	return inflationRates, nil
+
 }
