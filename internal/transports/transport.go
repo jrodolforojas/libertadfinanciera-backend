@@ -43,18 +43,63 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 		encodeResponse,
 	))
 
-	router.Methods(http.MethodGet).Path("/tbp").Handler(httptransport.NewServer(
+	router.Methods(http.MethodGet).Path("/country_interes_rates/cr").Handler(httptransport.NewServer(
 		endpoints.GetBasicPassiveRates,
 		decodeGetAllDolarColonesChangesRequest,
 		encodeResponse,
 	))
 
-	router.Methods(http.MethodGet).Path("/tbp/today").Handler(httptransport.NewServer(
+	router.Methods(http.MethodGet).Path("/country_interes_rates/cr/today").Handler(httptransport.NewServer(
 		endpoints.GetTodayBasicPassiveRate,
 		decodeTodayExchangeRateRequest,
 		encodeResponse,
 	))
+	router.Methods(http.MethodGet).Path("/country_interes_rates/usa").Handler(httptransport.NewServer(
+		endpoints.GetTreasuryRatesUSA,
+		decodeGetAllDolarColonesChangesRequest,
+		encodeResponse,
+	))
+	router.Methods(http.MethodGet).Path("/country_interes_rates/usa/today").Handler(httptransport.NewServer(
+		endpoints.GetTreasuryRateUSA,
+		decodeTodayExchangeRateRequest,
+		encodeResponse,
+	))
+	router.Methods(http.MethodGet).Path("/monetary_policy_rates").Handler(httptransport.NewServer(
+		endpoints.GetMonetaryPolicyRates,
+		decodeGetAllDolarColonesChangesRequest,
+		encodeResponse,
+	))
+	router.Methods(http.MethodGet).Path("/monetary_policy_rates/today").Handler(httptransport.NewServer(
+		endpoints.GetTodayMonetaryPolicyRate,
+		decodeTodayExchangeRateRequest,
+		encodeResponse,
+	))
+	router.Methods(http.MethodGet).Path("/prime_rates").Handler(httptransport.NewServer(
+		endpoints.GetPrimeRates,
+		decodeGetAllDolarColonesChangesRequest,
+		encodeResponse,
+	))
+	router.Methods(http.MethodGet).Path("/prime_rates/today").Handler(httptransport.NewServer(
+		endpoints.GetPrimeRate,
+		decodeTodayExchangeRateRequest,
+		encodeResponse,
+	))
 
+	router.Methods(http.MethodGet).Path("/inflation_rates/cr").Handler(httptransport.NewServer(
+		endpoints.GetCostaRicaInflationRates,
+		decodeGetAllDolarColonesChangesRequest,
+		encodeResponse,
+	))
+	router.Methods(http.MethodGet).Path("/inflation_rates/cr/today").Handler(httptransport.NewServer(
+		endpoints.GetCostaRicaInflationRate,
+		decodeTodayExchangeRateRequest,
+		encodeResponse,
+	))
+	router.Methods(http.MethodGet).Path("/inflation_rates/usa").Handler(httptransport.NewServer(
+		endpoints.GetUSAInflationRates,
+		decodeGetAllDolarColonesChangesRequest,
+		encodeResponse,
+	))
 	return router
 }
 

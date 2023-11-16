@@ -27,6 +27,7 @@ func (ws *WebServer) StartServer() {
 	if err != nil {
 		panic(err)
 	}
+	config.Address.Port = "8082"
 
 	logger := utils.NewLogger()
 	_ = level.Debug(logger).Log("msg", "service started")
@@ -37,7 +38,7 @@ func (ws *WebServer) StartServer() {
 
 	_ = level.Debug(logger).Log("msg", "supabase client initialized")
 
-	scrapper := scrapper.NewBCCRScrapper(logger, config.Scrapper.ExchangeRateUrl, config.Scrapper.BasicPassiveRateUrl)
+	scrapper := scrapper.NewBCCRScrapper(logger, config.Scrapper)
 
 	_ = level.Debug(logger).Log("msg", "BCCR scrapper initialized")
 
