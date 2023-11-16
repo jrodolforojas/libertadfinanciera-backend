@@ -64,3 +64,10 @@ type GetCostaRicaInflationRatesResponse struct {
 }
 
 func (r GetCostaRicaInflationRatesResponse) error() error { return r.Err }
+
+type GetTodayCostaRicaInflationRateResponse struct {
+	InflationRate *models.CostaRicaInflationRate `json:"data"`
+	Err           error                          `json:"error,omitempty"`
+}
+
+func (r GetTodayCostaRicaInflationRateResponse) error() error { return r.Err }

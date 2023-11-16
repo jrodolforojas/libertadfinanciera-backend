@@ -22,6 +22,7 @@ type Scrapper interface {
 	GetPrimeRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.PrimeRate, error)
 	GetPrimeRateByDate(date time.Time) (*models.PrimeRate, error)
 	GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.CostaRicaInflationRate, error)
+	GetCostaRicaInflationRateByDate(date time.Time) (*models.CostaRicaInflationRate, error)
 }
 
 type BCCRScrapper struct {
@@ -400,4 +401,37 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Tim
 	collyCollector.Visit(url)
 
 	return inflationRates, nil
+}
+
+func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*models.CostaRicaInflationRate, error) {
+	dateFrom := time.Date(date.Year(), date.Month()-1, 1, 0, 0, 0, 0, time.UTC)
+	dateTo := time.Date(date.Year(), date.Month()-1, 31, 0, 0, 0, 0, time.UTC)
+	url := scrapper.getScrappingUrl(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo)
+	collyCollector := colly.NewCollector()
+
+	inflationRate := models.CostaRicaInflationRate{}
+
+	collyCollector.OnHTML("#theTable2732 > tbody", func(h *colly.HTMLElement) {
+		dateHTML := h.ChildText("#theTable2732 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr > td")
+		valueHTML := h.ChildText("#theTable2732 > tbody > tr:nth-child(2) > td:nth-child(4) > table > tbody > tr > td > table > tbody > tr > td")
+
+		inflationRateHTML := models.CostaRicaInflationRateHTML{
+			Value: valueHTML,
+			Date:  dateHTML,
+		}
+
+		costaRicaInflationRate, err := toCostaRicaInflationRate(inflationRateHTML)
+		if err != nil {
+			_ = level.Error(scrapper.logger).Log("msg", "error converting from CostaRicaInflationRateHTML to CostaRicaInflationRate models", "error", err)
+			return
+		}
+
+		inflationRate = costaRicaInflationRate
+		inflationRate.Date = dateTo
+
+	})
+
+	collyCollector.Visit(url)
+
+	return &inflationRate, nil
 }

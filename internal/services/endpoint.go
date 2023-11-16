@@ -17,6 +17,7 @@ type Endpoints struct {
 	GetPrimeRates              endpoint.Endpoint
 	GetPrimeRate               endpoint.Endpoint
 	GetCostaRicaInflationRates endpoint.Endpoint
+	GetCostaRicaInflationRate  endpoint.Endpoint
 }
 
 func MakeEndpoints(s *ServiceAPI) Endpoints {
@@ -30,6 +31,7 @@ func MakeEndpoints(s *ServiceAPI) Endpoints {
 		GetPrimeRates:              makeGetPrimeRatesEndpoint(s),
 		GetPrimeRate:               makeGetPrimeRateEndpoint(s),
 		GetCostaRicaInflationRates: makeGetCostaRicaInflationRatesEndpoint(s),
+		GetCostaRicaInflationRate:  makeGetCostaRicaInflationRateEndpoint(s),
 	}
 }
 
@@ -137,6 +139,18 @@ func makeGetCostaRicaInflationRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 		}
 
 		result := s.GetCostaRicaInflationRates(ctx, req)
+		return result, nil
+	}
+}
+
+func makeGetCostaRicaInflationRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req, ok := request.(GetTodayExchangeRateRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+		}
+		result := s.GetCostaRicaInflationRate(ctx, req)
+
 		return result, nil
 	}
 }
