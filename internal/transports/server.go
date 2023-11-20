@@ -27,7 +27,6 @@ func (ws *WebServer) StartServer() {
 	if err != nil {
 		panic(err)
 	}
-	config.Address.Port = "8082"
 
 	logger := utils.NewLogger()
 	_ = level.Debug(logger).Log("msg", "service started")
