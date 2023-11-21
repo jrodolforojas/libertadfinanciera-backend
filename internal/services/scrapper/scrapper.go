@@ -2,6 +2,9 @@ package scrapper
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-kit/kit/log/level"
@@ -26,6 +29,7 @@ type Scrapper interface {
 	GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error)
 	GetTreasuryRateUSAByDate(date time.Time) (*models.TreasuryRateUSA, error)
 	GetUSAInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.USAInflationRate, error)
+	GetUSAInflationRateByDate(date time.Time) (*models.USAInflationRate, error)
 }
 
 type BCCRScrapper struct {
@@ -441,20 +445,93 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*
 
 func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.USAInflationRate, error) {
 	url := scrapper.urls.InflationUSAUrl
-	_ = level.Debug(scrapper.logger).Log("url", url)
-
-	collyCollector := colly.NewCollector()
 
 	inflationRates := []models.USAInflationRate{}
+	response, err := http.Get(url)
+	if err != nil {
+		_ = level.Error(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
+	}
+	defer response.Body.Close()
 
-	collyCollector.OnHTML("#EditableTables > tbody", func(h *colly.HTMLElement) {
-		columns := h.ChildTexts("#EditableTables > tbody > tr")
-		_ = level.Debug(scrapper.logger).Log("columns", columns)
-	})
+	responseData, err := io.ReadAll(response.Body)
+	if err != nil {
+		_ = level.Error(scrapper.logger).Log("msg", "error reading response body", "error", err)
+	}
 
-	collyCollector.Visit(url)
+	responseString := string(responseData)
+	tableRows := strings.Split(responseString, "~")
+
+	for _, row := range tableRows {
+		fields := strings.Split(row, ",,")
+		value := ""
+		if len(fields) >= 3 {
+			value = strings.ReplaceAll(fields[3], " ", "")
+		}
+
+		if value != "" {
+			inflationRateHTML := models.USAInflationRateHTML{
+				Value: value,
+				Date:  fields[0] + " " + fields[1],
+			}
+
+			inflationRate, err := toUSAInflationRate(inflationRateHTML)
+			if err != nil {
+				_ = level.Error(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
+				return nil, err
+			}
+
+			// check if date is between dateFrom and dateTo
+			if (inflationRate.Date.After(dateFrom) || inflationRate.Date.Equal(dateFrom)) && (inflationRate.Date.Before(dateTo) || inflationRate.Date.Equal(dateTo)) {
+				inflationRates = append(inflationRates, inflationRate)
+			}
+		}
+	}
 
 	return inflationRates, nil
+}
+
+func (scrapper *BCCRScrapper) GetUSAInflationRateByDate(date time.Time) (*models.USAInflationRate, error) {
+	url := scrapper.urls.InflationUSAUrl
+
+	inflationRate := models.USAInflationRate{}
+	response, err := http.Get(url)
+	if err != nil {
+		_ = level.Error(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
+	}
+	defer response.Body.Close()
+
+	responseData, err := io.ReadAll(response.Body)
+	if err != nil {
+		_ = level.Error(scrapper.logger).Log("msg", "error reading response body", "error", err)
+	}
+
+	responseString := string(responseData)
+	tableRows := strings.Split(responseString, "~")
+
+	row := tableRows[0]
+
+	fields := strings.Split(row, ",,")
+	value := ""
+	if len(fields) >= 3 {
+		value = strings.ReplaceAll(fields[3], " ", "")
+	}
+
+	if value != "" {
+		inflationRateHTML := models.USAInflationRateHTML{
+			Value: value,
+			Date:  fields[0] + " " + fields[1],
+		}
+
+		todayInflationRate, err := toUSAInflationRate(inflationRateHTML)
+		if err != nil {
+			_ = level.Error(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
+			return nil, err
+		}
+
+		inflationRate = todayInflationRate
+	}
+
+	return &inflationRate, nil
 }
 
 func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error) {

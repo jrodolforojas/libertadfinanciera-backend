@@ -26,6 +26,7 @@ type Service interface {
 	GetTreasuryRatesUSA(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetTreasuryRatesUSAResponse
 	GetTodayTreasuryRateUSA(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayTreasuryRateUSAResponse
 	GetUSAInflationRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetUSAInflationRatesResponse
+	GetUSAInflationRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayUSAInflationRateResponse
 }
 
 type ServiceAPI struct {
@@ -393,5 +394,23 @@ func (service *ServiceAPI) GetUSAInflationRates(ctx context.Context, req GetAllD
 	return &GetUSAInflationRatesResponse{
 		InflationRates: result,
 		Err:            nil,
+	}
+}
+
+func (service *ServiceAPI) GetUSAInflationRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayUSAInflationRateResponse {
+	date := time.Now()
+	todayUSAInflationRate, err := service.Scrapper.GetUSAInflationRateByDate(date)
+	if err != nil {
+		_ = level.Error(service.logger).Log("msg", "error scrapping USA inflation rate by date", "date", date,
+			"error", err)
+		return &GetTodayUSAInflationRateResponse{
+			InflationRate: nil,
+			Err:           err,
+		}
+	}
+
+	return &GetTodayUSAInflationRateResponse{
+		InflationRate: todayUSAInflationRate,
+		Err:           err,
 	}
 }
