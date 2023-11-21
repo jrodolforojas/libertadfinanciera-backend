@@ -85,3 +85,28 @@ func toTreasuryRateUSA(treasuryRateUSAHTML models.TreasuryRateUSAHTML) (models.T
 
 	return treasuryRateUSA, nil
 }
+
+func toUSAInflationRate(inflationRateHTML models.USAInflationRateHTML) (models.USAInflationRate, error) {
+	dateArray := strings.Split(inflationRateHTML.Date, " ") // 0: Year 1: Month
+	year, err := strconv.Atoi(dateArray[0])
+	if err != nil {
+		return models.USAInflationRate{}, err
+	}
+	month, err := strconv.Atoi(dateArray[1])
+	if err != nil {
+		return models.USAInflationRate{}, err
+	}
+	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+
+	lastDayOfMonth := date.AddDate(0, 1, -1)
+	valueHTML := strings.ReplaceAll(inflationRateHTML.Value, ",", ".")
+	value, error := strconv.ParseFloat(valueHTML, 64)
+	if error != nil {
+		return models.USAInflationRate{}, error
+	}
+	inflationRate := models.USAInflationRate{
+		Value: value,
+		Date:  lastDayOfMonth,
+	}
+	return inflationRate, nil
+}
