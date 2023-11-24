@@ -51,6 +51,7 @@ func (scrapper *BCCRScrapper) getScrappingUrl(url string, dateFrom time.Time, da
 func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error) {
 	url := scrapper.getScrappingUrl(scrapper.urls.ExchangeRateUrl, dateFrom, dateTo)
 
+	_ = level.Debug(scrapper.logger).Log("url", url)
 	collyCollector := colly.NewCollector()
 
 	exchangesRates := []models.ExchangeRate{}
