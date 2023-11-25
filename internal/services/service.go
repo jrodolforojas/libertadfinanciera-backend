@@ -43,33 +43,68 @@ func NewService(logger log.Logger, scrapperService scrapper.Scrapper, repo repos
 	}
 }
 
+func (service *ServiceAPI) bubbleSort(input []models.ExchangeRate) []models.ExchangeRate {
+	n := len(input)
+	for i := 0; i < n; i++ {
+		for j := 0; j < n-i-1; j++ {
+			if input[j].Date.Before(input[j+1].Date) {
+				input[j], input[j+1] = input[j+1], input[j]
+			}
+		}
+	}
+	return input
+}
+
 func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse {
+	exchangeRates := []models.ExchangeRate{}
+
 	dateFrom := req.DateFrom
 
-	var allExchangeRates []models.ExchangeRate
-	for dateFrom.Before(req.DateTo) {
-		nextMonthDate := dateFrom.AddDate(0, 1, 0) // add 1 month to dateFrom
-		if nextMonthDate.After(req.DateTo) {
-			nextMonthDate = req.DateTo
+	dateRanges := []models.DateRange{}
+	for {
+		if dateFrom.Month() == req.DateTo.Month() && dateFrom.Year() == req.DateTo.Year() {
+			dateRanges = append(dateRanges, models.DateRange{
+				DateFrom: dateFrom,
+				DateTo:   req.DateTo,
+			})
+			break
 		}
-		exchangeRates, err := service.Scrapper.GetDollarColonesChangeByDates(dateFrom, nextMonthDate)
-		if err != nil {
-			_ = level.Error(service.logger).Log("msg", "error scrapping", "dateFrom", dateFrom, "dateTo", nextMonthDate, "error", err)
+		dateTo := dateFrom.AddDate(0, 1, 0) // add 1 month to dateFrom
+		dateRanges = append(dateRanges, models.DateRange{
+			DateFrom: dateFrom,
+			DateTo:   dateTo,
+		})
+		dateFrom = dateTo
+	}
+
+	errc := make(chan error, len(dateRanges))
+	for _, dateRange := range dateRanges {
+		go func(dateFrom time.Time, dateTo time.Time) {
+			result, err := service.Scrapper.GetDollarColonesChangeByDates(dateFrom, dateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping exchange rate by dates",
+					"date_from", dateFrom, "date_to", dateTo)
+				errc <- err
+				return
+			}
+			exchangeRates = append(exchangeRates, result...)
+			errc <- nil
+		}(dateRange.DateFrom, dateRange.DateTo)
+	}
+
+	for i := 0; i < len(dateRanges); i++ {
+		if err := <-errc; err != nil {
 			return &GetAllDollarColonesChangesResponse{
 				ExchangesRates: nil,
 				Err:            err,
 			}
 		}
-		allExchangeRates = append(allExchangeRates, exchangeRates...)
-		dateFrom = nextMonthDate
 	}
 
-	sort.Slice(allExchangeRates, func(i, j int) bool {
-		return allExchangeRates[i].Date.After(allExchangeRates[j].Date)
-	})
+	exchangeRatesSorted := service.bubbleSort(exchangeRates)
 
 	return &GetAllDollarColonesChangesResponse{
-		ExchangesRates: allExchangeRates,
+		ExchangesRates: exchangeRatesSorted,
 		Err:            nil,
 	}
 }
