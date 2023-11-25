@@ -43,18 +43,6 @@ func NewService(logger log.Logger, scrapperService scrapper.Scrapper, repo repos
 	}
 }
 
-func (service *ServiceAPI) bubbleSort(input []models.ExchangeRate) []models.ExchangeRate {
-	n := len(input)
-	for i := 0; i < n; i++ {
-		for j := 0; j < n-i-1; j++ {
-			if input[j].Date.Before(input[j+1].Date) {
-				input[j], input[j+1] = input[j+1], input[j]
-			}
-		}
-	}
-	return input
-}
-
 func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse {
 	exchangeRates := []models.ExchangeRate{}
 
@@ -101,10 +89,12 @@ func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAl
 		}
 	}
 
-	exchangeRatesSorted := service.bubbleSort(exchangeRates)
+	sort.Slice(exchangeRates, func(i, j int) bool {
+		return exchangeRates[i].Date.After(exchangeRates[j].Date)
+	})
 
 	return &GetAllDollarColonesChangesResponse{
-		ExchangesRates: exchangeRatesSorted,
+		ExchangesRates: exchangeRates,
 		Err:            nil,
 	}
 }
