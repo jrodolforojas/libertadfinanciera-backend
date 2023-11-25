@@ -47,7 +47,7 @@ func (service *ServiceAPI) bubbleSort(input []models.ExchangeRate) []models.Exch
 	n := len(input)
 	for i := 0; i < n; i++ {
 		for j := 0; j < n-i-1; j++ {
-			if input[j].Date.After(input[j+1].Date) {
+			if input[j].Date.Before(input[j+1].Date) {
 				input[j], input[j+1] = input[j+1], input[j]
 			}
 		}

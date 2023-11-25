@@ -50,8 +50,6 @@ func (scrapper *BCCRScrapper) getScrappingUrl(url string, dateFrom time.Time, da
 
 func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time) ([]models.ExchangeRate, error) {
 	url := scrapper.getScrappingUrl(scrapper.urls.ExchangeRateUrl, dateFrom, dateTo)
-
-	_ = level.Debug(scrapper.logger).Log("url", url)
 	collyCollector := colly.NewCollector()
 
 	exchangesRates := []models.ExchangeRate{}
@@ -61,21 +59,24 @@ func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, 
 		buys := h.ChildTexts("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr > td")
 		sales := h.ChildTexts("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(3) > table > tbody > tr > td > table > tbody > tr > td")
 
-		if len(dates) != len(buys) || len(dates) != len(sales) {
-			_ = level.Debug(scrapper.logger).Log("message", "The number of dates, buys and sales are not the same")
-			return
+		var exchangesRatesHTML []models.ExchangeRateHTML
+		for index, date := range dates {
+			buy := buys[index]
+			sale := sales[index]
+			if buy != "" && sale != "" {
+				exchangeRateHTML := models.ExchangeRateHTML{
+					SalePrice: sale,
+					BuyPrice:  buy,
+					Date:      date,
+				}
+				exchangesRatesHTML = append(exchangesRatesHTML, exchangeRateHTML)
+			}
 		}
 
-		for i := 0; i < len(dates); i++ {
-			result := models.ExchangeRateHTML{
-				SalePrice: sales[i],
-				BuyPrice:  buys[i],
-				Date:      dates[i],
-			}
-
-			toExchangeRate, err := result.ToExchangeRate()
+		for _, exchangeRateHTML := range exchangesRatesHTML {
+			toExchangeRate, err := exchangeRateHTML.ToExchangeRate()
 			if err != nil {
-				_ = level.Debug(scrapper.logger).Log("message", "error converting from html to exchange rate", "result", result, "error", err)
+				_ = level.Debug(scrapper.logger).Log("message", "error converting from html to exchange rate", "result", exchangesRatesHTML, "error", err)
 				return
 			}
 			exchangesRates = append(exchangesRates, toExchangeRate)
