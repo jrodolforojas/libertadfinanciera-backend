@@ -377,31 +377,50 @@ func (service *ServiceAPI) GetCostaRicaInflationRate(ctx context.Context, req Ge
 func (service *ServiceAPI) GetTreasuryRatesUSA(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetTreasuryRatesUSAResponse {
 	treasuryRates := []models.TreasuryRateUSA{}
 	dateFrom := req.DateFrom
+	dateRanges := []models.DateRange{}
 	for {
 		if dateFrom.Month() == req.DateTo.Month() && dateFrom.Year() == req.DateTo.Year() {
-			result, err := service.Scrapper.GetTreasuryRateUSAByDates(dateFrom, req.DateTo)
-			if err != nil {
-				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
-					"date_from", req.DateFrom, "date_to", req.DateTo)
-				break
-			}
-			treasuryRates = append(treasuryRates, result...)
+			dateRanges = append(dateRanges, models.DateRange{
+				DateFrom: dateFrom,
+				DateTo:   req.DateTo,
+			})
 			break
 		}
 		dateTo := dateFrom.AddDate(0, 1, 0) // add 1 month to dateFrom
-		result, err := service.Scrapper.GetTreasuryRateUSAByDates(dateFrom, dateTo)
-		if err != nil {
-			_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
-				"date_from", req.DateFrom, "date_to", req.DateTo)
-			break
-		}
-		treasuryRates = append(treasuryRates, result...)
+		dateRanges = append(dateRanges, models.DateRange{
+			DateFrom: dateFrom,
+			DateTo:   dateTo,
+		})
 		dateFrom = dateTo
+	}
+
+	errc := make(chan error, len(dateRanges))
+	for _, dateRange := range dateRanges {
+		go func(dateFrom time.Time, dateTo time.Time) {
+			result, err := service.Scrapper.GetTreasuryRateUSAByDates(dateFrom, dateTo)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by dates", "error", err)
+				errc <- err
+				return
+			}
+			treasuryRates = append(treasuryRates, result...)
+			errc <- nil
+		}(dateRange.DateFrom, dateRange.DateTo)
+	}
+
+	for i := 0; i < len(dateRanges); i++ {
+		if err := <-errc; err != nil {
+			return &GetTreasuryRatesUSAResponse{
+				TreasuryRatesUSA: nil,
+				Err:              err,
+			}
+		}
 	}
 
 	sort.Slice(treasuryRates, func(i, j int) bool {
 		return treasuryRates[i].Date.After(treasuryRates[j].Date)
 	})
+
 	return &GetTreasuryRatesUSAResponse{
 		TreasuryRatesUSA: treasuryRates,
 		Err:              nil,

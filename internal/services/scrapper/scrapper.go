@@ -538,8 +538,6 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDate(date time.Time) (*models
 
 func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error) {
 	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, dateFrom, dateTo)
-	_ = level.Debug(scrapper.logger).Log("url", url)
-
 	collyCollector := colly.NewCollector()
 
 	treasuryRates := []models.TreasuryRateUSA{}
