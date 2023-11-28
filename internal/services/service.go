@@ -294,32 +294,57 @@ func (service *ServiceAPI) GetTodayPrimeRate(ctx context.Context, req GetTodayEx
 	}
 }
 
+const MAXIMUM_INFLATION_RATE_YEAR = 1
+
 func (service *ServiceAPI) GetCostaRicaInflationRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetCostaRicaInflationRatesResponse {
 	inflationRates := []models.CostaRicaInflationRate{}
+
 	dateFrom := req.DateFrom
-	dateTo := time.Date(dateFrom.Year()+1, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+
+	dateRanges := []models.DateRange{}
+
+	yearDifference := req.DateTo.Year() - req.DateFrom.Year()
+
 	for {
-		if req.DateTo.Year() == dateTo.Year() {
-			dateFrom = time.Date(req.DateTo.Year(), time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-			dateTo = time.Date(req.DateTo.Year(), time.Month(req.DateTo.Month()), 1, 0, 0, 0, 0, time.UTC)
+		if yearDifference == MAXIMUM_INFLATION_RATE_YEAR {
+			dateRanges = append(dateRanges, models.DateRange{
+				DateFrom: dateFrom,
+				DateTo:   req.DateTo,
+			})
+			break
+		} else {
+			dateTo := dateFrom.AddDate(1, 0, 0) // add 1 month to dateFrom
+			dateRanges = append(dateRanges, models.DateRange{
+				DateFrom: dateFrom,
+				DateTo:   dateTo,
+			})
+			dateFrom = dateTo
+			yearDifference = req.DateTo.Year() - dateFrom.Year()
+		}
+	}
+
+	errc := make(chan error, len(dateRanges))
+	for _, dateRange := range dateRanges {
+		go func(dateFrom time.Time, dateTo time.Time) {
 			result, err := service.Scrapper.GetCostaRicaInflationRateByDates(dateFrom, dateTo)
 			if err != nil {
-				_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
-					"date_from", req.DateFrom, "date_to", req.DateTo)
-				break
+				_ = level.Error(service.logger).Log("msg", "error scrapping inflation rate by dates",
+					"date_from", dateFrom, "date_to", dateTo)
+				errc <- err
+				return
 			}
 			inflationRates = append(inflationRates, result...)
-			break
+			errc <- nil
+		}(dateRange.DateFrom, dateRange.DateTo)
+	}
+
+	for i := 0; i < len(dateRanges); i++ {
+		if err := <-errc; err != nil {
+			return &GetCostaRicaInflationRatesResponse{
+				InflationRates: nil,
+				Err:            err,
+			}
 		}
-		result, err := service.Scrapper.GetCostaRicaInflationRateByDates(dateFrom, dateTo)
-		if err != nil {
-			_ = level.Error(service.logger).Log("msg", "error scrapping basic passive rates by dates",
-				"date_from", req.DateFrom, "date_to", req.DateTo)
-			break
-		}
-		inflationRates = append(inflationRates, result...)
-		dateFrom = time.Date(dateFrom.Year()+1, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-		dateTo = time.Date(dateFrom.Year()+1, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	}
 
 	sort.Slice(inflationRates, func(i, j int) bool {
