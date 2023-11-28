@@ -46,7 +46,7 @@ func toCostaRicaInflationRate(costaRicaInflationRate models.CostaRicaInflationRa
 	}
 	month := months[dateArray[0]]
 	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-
+	lastDayOfMonth := date.AddDate(0, 1, -1)
 	valueHTML := strings.ReplaceAll(costaRicaInflationRate.Value, ",", ".")
 	value, error := strconv.ParseFloat(valueHTML, 64)
 	if error != nil {
@@ -54,7 +54,7 @@ func toCostaRicaInflationRate(costaRicaInflationRate models.CostaRicaInflationRa
 	}
 	inflationRate := models.CostaRicaInflationRate{
 		Value: value,
-		Date:  date,
+		Date:  lastDayOfMonth,
 	}
 
 	return inflationRate, nil
