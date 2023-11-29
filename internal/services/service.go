@@ -294,26 +294,26 @@ func (service *ServiceAPI) GetTodayPrimeRate(ctx context.Context, req GetTodayEx
 	}
 }
 
-const MAXIMUM_INFLATION_RATE_YEAR = 1
+const MAXIMUM_INFLATION_RATE_YEAR = 2
 
 func (service *ServiceAPI) GetCostaRicaInflationRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetCostaRicaInflationRatesResponse {
 	inflationRates := []models.CostaRicaInflationRate{}
 
 	dateFrom := req.DateFrom
-
 	dateRanges := []models.DateRange{}
 
 	yearDifference := req.DateTo.Year() - req.DateFrom.Year()
 
 	for {
-		if yearDifference == MAXIMUM_INFLATION_RATE_YEAR {
+		if yearDifference <= MAXIMUM_INFLATION_RATE_YEAR {
 			dateRanges = append(dateRanges, models.DateRange{
 				DateFrom: dateFrom,
 				DateTo:   req.DateTo,
 			})
 			break
 		} else {
-			dateTo := dateFrom.AddDate(1, 0, 0) // add 1 month to dateFrom
+			// add 1 year to dateFrom
+			dateTo := dateFrom.AddDate(MAXIMUM_INFLATION_RATE_YEAR, 0, 0)
 			dateRanges = append(dateRanges, models.DateRange{
 				DateFrom: dateFrom,
 				DateTo:   dateTo,
