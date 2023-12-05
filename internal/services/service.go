@@ -117,17 +117,30 @@ func (service *ServiceAPI) GetExchangeRatesByFilter(ctx context.Context, req Get
 	minimumDate := time.Date(1983, 0, 1, 0, 0, 0, 0, time.UTC)
 	today := time.Now()
 
+	errc := make(chan error, len(filtersArray))
+
 	for _, filter := range filtersArray {
-		result, err := service.Scrapper.GetDollarColonesChangeByDates(minimumDate, today, filter)
-		if err != nil {
-			_ = level.Error(service.logger).Log("msg", "error scrapping exchange rate by filter",
-				"date_from", minimumDate, "date_to", today, "filter", filter, "error", err)
+		go func(filter int64) {
+			result, err := service.Scrapper.GetDollarColonesChangeByDates(minimumDate, today, filter)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping exchange rate by filter",
+					"date_from", minimumDate, "date_to", today, "filter", filter, "error", err)
+				errc <- err
+				return
+			}
+			exchangeRates = append(exchangeRates, result...)
+			errc <- nil
+
+		}(filter)
+	}
+
+	for i := 0; i < len(filtersArray); i++ {
+		if err := <-errc; err != nil {
 			return &GetAllDollarColonesChangesResponse{
 				ExchangesRates: nil,
 				Err:            err,
 			}
 		}
-		exchangeRates = append(exchangeRates, result...)
 	}
 
 	if req.Periodicity == "quinquennium" {
