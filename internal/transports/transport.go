@@ -43,6 +43,12 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 		encodeResponse,
 	))
 
+	router.Methods(http.MethodGet).Path("/exchange_rates/filter").Handler(httptransport.NewServer(
+		endpoints.GetExchangeRatesByFilter,
+		decodeGetDataByFilterRequest,
+		encodeResponse,
+	))
+
 	router.Methods(http.MethodGet).Path("/country_interes_rates/cr").Handler(httptransport.NewServer(
 		endpoints.GetBasicPassiveRates,
 		decodeGetAllDolarColonesChangesRequest,
@@ -106,6 +112,25 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 		encodeResponse,
 	))
 	return router
+}
+
+func decodeGetDataByFilterRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	periocity := r.FormValue("periocity")
+
+	if periocity == "" {
+		return services.GetDataByFilterRequest{
+			Periodicity: "monthly",
+		}, nil
+	}
+
+	if periocity != "quarterly" && periocity != "biannual" && periocity != "annual" &&
+		periocity != "quinquennium" && periocity != "monthly" {
+		return nil, errors.New("periodicity not supported")
+	}
+
+	return services.GetDataByFilterRequest{
+		Periodicity: periocity,
+	}, nil
 }
 
 func decodeGetAllDolarColonesChangesRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

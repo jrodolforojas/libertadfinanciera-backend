@@ -9,6 +9,7 @@ import (
 
 type Endpoints struct {
 	GetAllDolarColonesChanges  endpoint.Endpoint
+	GetExchangeRatesByFilter   endpoint.Endpoint
 	GetTodayExchangeRate       endpoint.Endpoint
 	GetBasicPassiveRates       endpoint.Endpoint
 	GetTodayBasicPassiveRate   endpoint.Endpoint
@@ -27,6 +28,7 @@ type Endpoints struct {
 func MakeEndpoints(s *ServiceAPI) Endpoints {
 	return Endpoints{
 		GetAllDolarColonesChanges:  makeGetAllDolarColonesChangesEndpoint(s),
+		GetExchangeRatesByFilter:   makeGetExchangeRatesByFilterEndpoint(s),
 		GetTodayExchangeRate:       makeGetTodayExchangeRateEndpoint(s),
 		GetBasicPassiveRates:       makeGetBasicPassiveRatesEndpoint(s),
 		GetTodayBasicPassiveRate:   makeGetTodayBasicPassiveRateEndpoint(s),
@@ -51,6 +53,18 @@ func makeGetAllDolarColonesChangesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 		}
 
 		result := s.GetDollarColonesChange(ctx, req)
+		return result, nil
+	}
+}
+
+func makeGetExchangeRatesByFilterEndpoint(s *ServiceAPI) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req, ok := request.(GetDataByFilterRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetDataByFilterRequest")
+		}
+
+		result := s.GetExchangeRatesByFilter(ctx, req)
 		return result, nil
 	}
 }

@@ -14,6 +14,7 @@ import (
 
 type Service interface {
 	GetDollarColonesChange(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetAllDollarColonesChangesResponse
+	GetExchangeRatesByFilter(ctx context.Context, req GetDataByFilterRequest) *GetAllDollarColonesChangesResponse
 	GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse
 	GetBasicPassiveRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetBasicPassiveRatesResponse
 	GetTodayBasicPassiveRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayBasicPassiveRateResponse
@@ -68,7 +69,7 @@ func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAl
 	errc := make(chan error, len(dateRanges))
 	for _, dateRange := range dateRanges {
 		go func(dateFrom time.Time, dateTo time.Time) {
-			result, err := service.Scrapper.GetDollarColonesChangeByDates(dateFrom, dateTo)
+			result, err := service.Scrapper.GetDollarColonesChangeByDates(dateFrom, dateTo, 0)
 			if err != nil {
 				_ = level.Error(service.logger).Log("msg", "error scrapping exchange rate by dates",
 					"date_from", dateFrom, "date_to", dateTo)
@@ -99,6 +100,57 @@ func (service *ServiceAPI) GetDollarColonesChange(ctx context.Context, req GetAl
 	}
 }
 
+func (service *ServiceAPI) GetExchangeRatesByFilter(ctx context.Context, req GetDataByFilterRequest) *GetAllDollarColonesChangesResponse {
+	filtersArray := []int64{}
+
+	if req.Periodicity == "quarterly" {
+		filtersArray = []int64{31, 91, 182, 274, 366}
+	}
+	if req.Periodicity == "biannual" {
+		filtersArray = []int64{182, 366}
+	}
+	if req.Periodicity == "annual" || req.Periodicity == "quinquennium" {
+		filtersArray = []int64{366}
+	}
+
+	exchangeRates := []models.ExchangeRate{}
+	minimumDate := time.Date(1983, 0, 1, 0, 0, 0, 0, time.UTC)
+	today := time.Now()
+
+	for _, filter := range filtersArray {
+		result, err := service.Scrapper.GetDollarColonesChangeByDates(minimumDate, today, filter)
+		if err != nil {
+			_ = level.Error(service.logger).Log("msg", "error scrapping exchange rate by filter",
+				"date_from", minimumDate, "date_to", today, "filter", filter, "error", err)
+			return &GetAllDollarColonesChangesResponse{
+				ExchangesRates: nil,
+				Err:            err,
+			}
+		}
+		exchangeRates = append(exchangeRates, result...)
+	}
+
+	if req.Periodicity == "quinquennium" {
+		// filter exchanges rates by quinquennium from 1983 to today
+		exchangeRatesQuinquennium := []models.ExchangeRate{}
+		for i := 0; i < len(exchangeRates); i++ {
+			if i%5 == 0 {
+				exchangeRatesQuinquennium = append(exchangeRatesQuinquennium, exchangeRates[i])
+			}
+		}
+
+		exchangeRates = exchangeRatesQuinquennium
+	}
+
+	sort.Slice(exchangeRates, func(i, j int) bool {
+		return exchangeRates[i].Date.After(exchangeRates[j].Date)
+	})
+
+	return &GetAllDollarColonesChangesResponse{
+		ExchangesRates: exchangeRates,
+		Err:            nil,
+	}
+}
 func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse {
 	date := time.Now()
 	todayExchangeRate, err := service.Scrapper.GetExchangeRateByDate(date)
