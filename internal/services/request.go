@@ -9,3 +9,7 @@ type GetAllDollarColonesChangesRequest struct {
 
 type GetTodayExchangeRateRequest struct {
 }
+
+type GetDataByFilterRequest struct {
+	Periodicity string `json:"periodicity"`
+}
