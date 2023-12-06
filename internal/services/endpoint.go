@@ -8,40 +8,42 @@ import (
 )
 
 type Endpoints struct {
-	GetAllDolarColonesChanges  endpoint.Endpoint
-	GetExchangeRatesByFilter   endpoint.Endpoint
-	GetTodayExchangeRate       endpoint.Endpoint
-	GetBasicPassiveRates       endpoint.Endpoint
-	GetTodayBasicPassiveRate   endpoint.Endpoint
-	GetMonetaryPolicyRates     endpoint.Endpoint
-	GetTodayMonetaryPolicyRate endpoint.Endpoint
-	GetPrimeRates              endpoint.Endpoint
-	GetPrimeRate               endpoint.Endpoint
-	GetCostaRicaInflationRates endpoint.Endpoint
-	GetCostaRicaInflationRate  endpoint.Endpoint
-	GetTreasuryRatesUSA        endpoint.Endpoint
-	GetTreasuryRateUSA         endpoint.Endpoint
-	GetUSAInflationRates       endpoint.Endpoint
-	GetUSAInflationRate        endpoint.Endpoint
+	GetAllDolarColonesChanges          endpoint.Endpoint
+	GetExchangeRatesByFilter           endpoint.Endpoint
+	GetTodayExchangeRate               endpoint.Endpoint
+	GetBasicPassiveRates               endpoint.Endpoint
+	GetTodayBasicPassiveRate           endpoint.Endpoint
+	GetMonetaryPolicyRates             endpoint.Endpoint
+	GetTodayMonetaryPolicyRate         endpoint.Endpoint
+	GetPrimeRates                      endpoint.Endpoint
+	GetPrimeRate                       endpoint.Endpoint
+	GetCostaRicaInflationRates         endpoint.Endpoint
+	GetCostaRicaInflationRatesByFilter endpoint.Endpoint
+	GetCostaRicaInflationRate          endpoint.Endpoint
+	GetTreasuryRatesUSA                endpoint.Endpoint
+	GetTreasuryRateUSA                 endpoint.Endpoint
+	GetUSAInflationRates               endpoint.Endpoint
+	GetUSAInflationRate                endpoint.Endpoint
 }
 
 func MakeEndpoints(s *ServiceAPI) Endpoints {
 	return Endpoints{
-		GetAllDolarColonesChanges:  makeGetAllDolarColonesChangesEndpoint(s),
-		GetExchangeRatesByFilter:   makeGetExchangeRatesByFilterEndpoint(s),
-		GetTodayExchangeRate:       makeGetTodayExchangeRateEndpoint(s),
-		GetBasicPassiveRates:       makeGetBasicPassiveRatesEndpoint(s),
-		GetTodayBasicPassiveRate:   makeGetTodayBasicPassiveRateEndpoint(s),
-		GetMonetaryPolicyRates:     makeGetMonetaryPolicyRatesEndpoint(s),
-		GetTodayMonetaryPolicyRate: makeGetTodayMonetaryPolicyRateEndpoint(s),
-		GetPrimeRates:              makeGetPrimeRatesEndpoint(s),
-		GetPrimeRate:               makeGetPrimeRateEndpoint(s),
-		GetCostaRicaInflationRates: makeGetCostaRicaInflationRatesEndpoint(s),
-		GetCostaRicaInflationRate:  makeGetCostaRicaInflationRateEndpoint(s),
-		GetTreasuryRatesUSA:        makeGetTreasuryRatesUSAEndpoint(s),
-		GetTreasuryRateUSA:         makeGetTreasuryRateUSAEndpoint(s),
-		GetUSAInflationRates:       makeGetUSAInflationRatesEndpoint(s),
-		GetUSAInflationRate:        makeGetUSAInflationRateEndpoint(s),
+		GetAllDolarColonesChanges:          makeGetAllDolarColonesChangesEndpoint(s),
+		GetExchangeRatesByFilter:           makeGetExchangeRatesByFilterEndpoint(s),
+		GetTodayExchangeRate:               makeGetTodayExchangeRateEndpoint(s),
+		GetBasicPassiveRates:               makeGetBasicPassiveRatesEndpoint(s),
+		GetTodayBasicPassiveRate:           makeGetTodayBasicPassiveRateEndpoint(s),
+		GetMonetaryPolicyRates:             makeGetMonetaryPolicyRatesEndpoint(s),
+		GetTodayMonetaryPolicyRate:         makeGetTodayMonetaryPolicyRateEndpoint(s),
+		GetPrimeRates:                      makeGetPrimeRatesEndpoint(s),
+		GetPrimeRate:                       makeGetPrimeRateEndpoint(s),
+		GetCostaRicaInflationRates:         makeGetCostaRicaInflationRatesEndpoint(s),
+		GetCostaRicaInflationRatesByFilter: makeGetCostaRicaInflationRatesByFilterEndpoint(s),
+		GetCostaRicaInflationRate:          makeGetCostaRicaInflationRateEndpoint(s),
+		GetTreasuryRatesUSA:                makeGetTreasuryRatesUSAEndpoint(s),
+		GetTreasuryRateUSA:                 makeGetTreasuryRateUSAEndpoint(s),
+		GetUSAInflationRates:               makeGetUSAInflationRatesEndpoint(s),
+		GetUSAInflationRate:                makeGetUSAInflationRateEndpoint(s),
 	}
 }
 
@@ -161,6 +163,18 @@ func makeGetCostaRicaInflationRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 		}
 
 		result := s.GetCostaRicaInflationRates(ctx, req)
+		return result, nil
+	}
+}
+
+func makeGetCostaRicaInflationRatesByFilterEndpoint(s *ServiceAPI) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req, ok := request.(GetDataByFilterRequest)
+		if !ok {
+			return nil, errors.New("unable to cast the request to a GetDataByFilterRequest")
+		}
+
+		result := s.GetCostaRicaInflationRatesByFilter(ctx, req)
 		return result, nil
 	}
 }
