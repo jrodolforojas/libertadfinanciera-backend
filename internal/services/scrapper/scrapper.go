@@ -400,7 +400,7 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Tim
 		for _, inflationRateHTML := range inflationRatesHTML {
 			inflationRate, err := toCostaRicaInflationRate(inflationRateHTML)
 			if err != nil {
-				_ = level.Error(scrapper.logger).Log("msg", "error converting from CostaRicaInflationRateHTML to CostaRicaInflationRate models", "error", err)
+				_ = level.Debug(scrapper.logger).Log("msg", "error converting from CostaRicaInflationRateHTML to CostaRicaInflationRate models", "error", err)
 				return
 			}
 			inflationRates = append(inflationRates, inflationRate)
@@ -431,7 +431,7 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*
 
 		costaRicaInflationRate, err := toCostaRicaInflationRate(inflationRateHTML)
 		if err != nil {
-			_ = level.Error(scrapper.logger).Log("msg", "error converting from CostaRicaInflationRateHTML to CostaRicaInflationRate models", "error", err)
+			_ = level.Debug(scrapper.logger).Log("msg", "error converting from CostaRicaInflationRateHTML to CostaRicaInflationRate models", "error", err)
 			return
 		}
 
@@ -451,13 +451,13 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dat
 	inflationRates := []models.USAInflationRate{}
 	response, err := http.Get(url)
 	if err != nil {
-		_ = level.Error(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
+		_ = level.Debug(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
 	}
 	defer response.Body.Close()
 
 	responseData, err := io.ReadAll(response.Body)
 	if err != nil {
-		_ = level.Error(scrapper.logger).Log("msg", "error reading response body", "error", err)
+		_ = level.Debug(scrapper.logger).Log("msg", "error reading response body", "error", err)
 	}
 
 	responseString := string(responseData)
@@ -478,7 +478,7 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dat
 
 			inflationRate, err := toUSAInflationRate(inflationRateHTML)
 			if err != nil {
-				_ = level.Error(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
+				_ = level.Debug(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
 				return nil, err
 			}
 
@@ -498,13 +498,13 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDate(date time.Time) (*models
 	inflationRate := models.USAInflationRate{}
 	response, err := http.Get(url)
 	if err != nil {
-		_ = level.Error(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
+		_ = level.Debug(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
 	}
 	defer response.Body.Close()
 
 	responseData, err := io.ReadAll(response.Body)
 	if err != nil {
-		_ = level.Error(scrapper.logger).Log("msg", "error reading response body", "error", err)
+		_ = level.Debug(scrapper.logger).Log("msg", "error reading response body", "error", err)
 	}
 
 	responseString := string(responseData)
@@ -526,7 +526,7 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDate(date time.Time) (*models
 
 		todayInflationRate, err := toUSAInflationRate(inflationRateHTML)
 		if err != nil {
-			_ = level.Error(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
+			_ = level.Debug(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
 			return nil, err
 		}
 
@@ -561,7 +561,7 @@ func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, date
 		for _, treasuryRateHTML := range treasuryRatesHTML {
 			treasuryRate, err := toTreasuryRateUSA(treasuryRateHTML)
 			if err != nil {
-				_ = level.Error(scrapper.logger).Log("msg", "error converting from TreasuryRateUSAHTML to TreasuryRateUSA models", "error", err)
+				_ = level.Debug(scrapper.logger).Log("msg", "error converting from TreasuryRateUSAHTML to TreasuryRateUSA models", "error", err)
 				return
 			}
 			treasuryRates = append(treasuryRates, treasuryRate)

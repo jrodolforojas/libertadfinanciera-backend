@@ -2,9 +2,9 @@ package services
 
 import (
 	"context"
-	"errors"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/jrodolforojas/libertadfinanciera-backend/internal/utils"
 )
 
 type Endpoints struct {
@@ -51,7 +51,7 @@ func makeGetAllDolarColonesChangesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetAllDollarColonesChangesRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 
 		result := s.GetDollarColonesChange(ctx, req)
@@ -63,7 +63,7 @@ func makeGetExchangeRatesByFilterEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetDataByFilterRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetDataByFilterRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 
 		result := s.GetExchangeRatesByFilter(ctx, req)
@@ -75,7 +75,7 @@ func makeGetTodayExchangeRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetTodayExchangeRateRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetTodayExchangeRate(ctx, req)
 
@@ -87,7 +87,7 @@ func makeGetBasicPassiveRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetAllDollarColonesChangesRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 
 		result := s.GetBasicPassiveRates(ctx, req)
@@ -99,7 +99,7 @@ func makeGetTodayBasicPassiveRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetTodayExchangeRateRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetTodayBasicPassiveRate(ctx, req)
 
@@ -111,7 +111,7 @@ func makeGetMonetaryPolicyRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetAllDollarColonesChangesRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 
 		result := s.GetMonetaryPolicyRates(ctx, req)
@@ -123,7 +123,7 @@ func makeGetTodayMonetaryPolicyRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetTodayExchangeRateRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetTodayMonetaryPolicyRate(ctx, req)
 
@@ -135,7 +135,7 @@ func makeGetPrimeRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetAllDollarColonesChangesRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 
 		result := s.GetPrimeRates(ctx, req)
@@ -147,7 +147,7 @@ func makeGetPrimeRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetTodayExchangeRateRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetTodayPrimeRate(ctx, req)
 
@@ -159,7 +159,7 @@ func makeGetCostaRicaInflationRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetAllDollarColonesChangesRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 
 		result := s.GetCostaRicaInflationRates(ctx, req)
@@ -171,7 +171,7 @@ func makeGetCostaRicaInflationRatesByFilterEndpoint(s *ServiceAPI) endpoint.Endp
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetDataByFilterRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetDataByFilterRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 
 		result := s.GetCostaRicaInflationRatesByFilter(ctx, req)
@@ -183,7 +183,7 @@ func makeGetCostaRicaInflationRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetTodayExchangeRateRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetCostaRicaInflationRate(ctx, req)
 
@@ -195,7 +195,7 @@ func makeGetTreasuryRatesUSAEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetAllDollarColonesChangesRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetTreasuryRatesUSA(ctx, req)
 
@@ -207,7 +207,7 @@ func makeGetTreasuryRateUSAEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetTodayExchangeRateRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetTodayTreasuryRateUSA(ctx, req)
 
@@ -219,7 +219,7 @@ func makeGetUSAInflationRatesEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetAllDollarColonesChangesRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetAllDollarColonesChangesRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetUSAInflationRates(ctx, req)
 
@@ -231,7 +231,7 @@ func makeGetUSAInflationRateEndpoint(s *ServiceAPI) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req, ok := request.(GetTodayExchangeRateRequest)
 		if !ok {
-			return nil, errors.New("unable to cast the request to a GetTodayExchangeRateRequest")
+			return nil, utils.ErrDecodeRequest
 		}
 		result := s.GetUSAInflationRate(ctx, req)
 

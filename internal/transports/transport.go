@@ -3,11 +3,12 @@ package transports
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"log"
 	"net/http"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	httptransport "github.com/go-kit/kit/transport/http"
+	kitHTTP "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/configuration"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/middleware"
@@ -19,7 +20,41 @@ type errorer interface {
 	error() error
 }
 
-func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
+// MakeJSONEncoder creates a new json enooder
+func MakeJSONEncoder(logger log.Logger) kitHTTP.EncodeResponseFunc {
+	return func(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+		if e, ok := response.(errorer); ok && e.error() != nil {
+			encodeError(ctx, e.error(), w, logger)
+			return nil
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		return json.NewEncoder(w).Encode(response)
+	}
+}
+
+func encodeError(_ context.Context, err error, w http.ResponseWriter, logger log.Logger) {
+	if err == nil {
+		_ = level.Error(logger).Log("msg", "error encoding error", "error", err)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(codeFrom(err))
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": err.Error(),
+	})
+}
+
+func codeFrom(err error) int {
+	switch err {
+	case utils.ErrNotFound:
+		return http.StatusNotFound
+	case utils.ErrDateInvalidFormat, utils.ErrInvalidDateRange:
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI, logger log.Logger) http.Handler {
 	router := mux.NewRouter()
 	endpoints := services.MakeEndpoints(s)
 
@@ -34,89 +69,89 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI) http.Handler {
 	router.Methods(http.MethodGet).Path("/exchange_rates").Handler(httptransport.NewServer(
 		endpoints.GetAllDolarColonesChanges,
 		decodeGetAllDolarColonesChangesRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 
 	router.Methods(http.MethodGet).Path("/exchange_rates/today").Handler(httptransport.NewServer(
 		endpoints.GetTodayExchangeRate,
 		decodeTodayExchangeRateRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 
 	router.Methods(http.MethodGet).Path("/exchange_rates/filter").Handler(httptransport.NewServer(
 		endpoints.GetExchangeRatesByFilter,
 		decodeGetDataByFilterRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 
 	router.Methods(http.MethodGet).Path("/country_interes_rates/cr").Handler(httptransport.NewServer(
 		endpoints.GetBasicPassiveRates,
 		decodeGetAllDolarColonesChangesRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 
 	router.Methods(http.MethodGet).Path("/country_interes_rates/cr/today").Handler(httptransport.NewServer(
 		endpoints.GetTodayBasicPassiveRate,
 		decodeTodayExchangeRateRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/country_interes_rates/usa").Handler(httptransport.NewServer(
 		endpoints.GetTreasuryRatesUSA,
 		decodeGetAllDolarColonesChangesRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/country_interes_rates/usa/today").Handler(httptransport.NewServer(
 		endpoints.GetTreasuryRateUSA,
 		decodeTodayExchangeRateRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/monetary_policy_rates").Handler(httptransport.NewServer(
 		endpoints.GetMonetaryPolicyRates,
 		decodeGetAllDolarColonesChangesRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/monetary_policy_rates/today").Handler(httptransport.NewServer(
 		endpoints.GetTodayMonetaryPolicyRate,
 		decodeTodayExchangeRateRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/prime_rates").Handler(httptransport.NewServer(
 		endpoints.GetPrimeRates,
 		decodeGetAllDolarColonesChangesRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/prime_rates/today").Handler(httptransport.NewServer(
 		endpoints.GetPrimeRate,
 		decodeTodayExchangeRateRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 
 	router.Methods(http.MethodGet).Path("/inflation_rates/cr").Handler(httptransport.NewServer(
 		endpoints.GetCostaRicaInflationRates,
 		decodeGetAllDolarColonesChangesRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 
 	router.Methods(http.MethodGet).Path("/inflation_rates/cr/filter").Handler(httptransport.NewServer(
 		endpoints.GetCostaRicaInflationRatesByFilter,
 		decodeGetDataByFilterRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 
 	router.Methods(http.MethodGet).Path("/inflation_rates/cr/today").Handler(httptransport.NewServer(
 		endpoints.GetCostaRicaInflationRate,
 		decodeTodayExchangeRateRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/inflation_rates/usa").Handler(httptransport.NewServer(
 		endpoints.GetUSAInflationRates,
 		decodeGetAllDolarColonesChangesRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	router.Methods(http.MethodGet).Path("/inflation_rates/usa/today").Handler(httptransport.NewServer(
 		endpoints.GetUSAInflationRate,
 		decodeTodayExchangeRateRequest,
-		encodeResponse,
+		MakeJSONEncoder(logger),
 	))
 	return router
 }
@@ -132,7 +167,7 @@ func decodeGetDataByFilterRequest(_ context.Context, r *http.Request) (request i
 
 	if periocity != "quarterly" && periocity != "biannual" && periocity != "annual" &&
 		periocity != "quinquennium" && periocity != "monthly" {
-		return nil, errors.New("periodicity not supported")
+		return nil, utils.ErrPeriodicity
 	}
 
 	return services.GetDataByFilterRequest{
@@ -147,16 +182,16 @@ func decodeGetAllDolarColonesChangesRequest(_ context.Context, r *http.Request) 
 	if dateFromParam != "" && dateToParam != "" {
 		dateFrom, error := utils.ConvertStringDate(dateFromParam)
 		if error != nil {
-			return nil, errDateInvalidFormat
+			return nil, utils.ErrDateInvalidFormat
 		}
 
 		dateTo, error := utils.ConvertStringDate(dateToParam)
 		if error != nil {
-			return nil, errDateInvalidFormat
+			return nil, utils.ErrDateInvalidFormat
 		}
 
 		if !utils.IsDatesValid(dateFrom, dateTo) {
-			return nil, errInvalidDateRange
+			return nil, utils.ErrInvalidDateRange
 		}
 
 		return services.GetAllDollarColonesChangesRequest{
@@ -175,41 +210,4 @@ func decodeGetAllDolarColonesChangesRequest(_ context.Context, r *http.Request) 
 func decodeTodayExchangeRateRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 	var req services.GetTodayExchangeRateRequest
 	return req, nil
-}
-
-func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
-	if e, ok := response.(errorer); ok && e.error() != nil {
-		encodeError(ctx, e.error(), w)
-		return nil
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	return json.NewEncoder(w).Encode(response)
-}
-
-func encodeError(_ context.Context, err error, w http.ResponseWriter) {
-	if err == nil {
-		log.Println("encodeError with nil error")
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(codeFrom(err))
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error": err.Error(),
-	})
-}
-
-var (
-	errDateInvalidFormat = errors.New("invalid date format. Should be in format: YYYY/MM/DD")
-	errInvalidDateRange  = errors.New("invalid date range. Should be between 1983 and today")
-	errNotFound          = errors.New("not found")
-)
-
-func codeFrom(err error) int {
-	switch err {
-	case errNotFound:
-		return http.StatusNotFound
-	case errDateInvalidFormat, errInvalidDateRange:
-		return http.StatusBadRequest
-	default:
-		return http.StatusInternalServerError
-	}
 }
