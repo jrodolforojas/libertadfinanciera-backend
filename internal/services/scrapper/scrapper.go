@@ -24,7 +24,7 @@ type Scrapper interface {
 	GetMonetaryPolicyRateByDate(date time.Time) (*models.MonetaryPolicyRate, error)
 	GetPrimeRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.PrimeRate, error)
 	GetPrimeRateByDate(date time.Time) (*models.PrimeRate, error)
-	GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.CostaRicaInflationRate, error)
+	GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time, filter int64) ([]models.CostaRicaInflationRate, error)
 	GetCostaRicaInflationRateByDate(date time.Time) (*models.CostaRicaInflationRate, error)
 	GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error)
 	GetTreasuryRateUSAByDate(date time.Time) (*models.TreasuryRateUSA, error)
@@ -375,8 +375,8 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDate(date time.Time) (*models.PrimeR
 	return &primeRate, nil
 }
 
-func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.CostaRicaInflationRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo, 0)
+func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time, filter int64) ([]models.CostaRicaInflationRate, error) {
+	url := scrapper.getScrappingUrl(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo, filter)
 	collyCollector := colly.NewCollector()
 
 	inflationRates := []models.CostaRicaInflationRate{}

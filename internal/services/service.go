@@ -23,6 +23,7 @@ type Service interface {
 	GetPrimeRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetPrimeRatesResponse
 	GetTodayPrimeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayPrimeRateResponse
 	GetCostaRicaInflationRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetCostaRicaInflationRatesResponse
+	GetCostaRicaInflationRatesByFilter(ctx context.Context, req GetDataByFilterRequest) *GetCostaRicaInflationRatesResponse
 	GetCostaRicaInflationRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayCostaRicaInflationRateResponse
 	GetTreasuryRatesUSA(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetTreasuryRatesUSAResponse
 	GetTodayTreasuryRateUSA(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayTreasuryRateUSAResponse
@@ -391,7 +392,7 @@ func (service *ServiceAPI) GetCostaRicaInflationRates(ctx context.Context, req G
 	errc := make(chan error, len(dateRanges))
 	for _, dateRange := range dateRanges {
 		go func(dateFrom time.Time, dateTo time.Time) {
-			result, err := service.Scrapper.GetCostaRicaInflationRateByDates(dateFrom, dateTo)
+			result, err := service.Scrapper.GetCostaRicaInflationRateByDates(dateFrom, dateTo, 0)
 			if err != nil {
 				_ = level.Error(service.logger).Log("msg", "error scrapping inflation rate by dates",
 					"date_from", dateFrom, "date_to", dateTo)
@@ -415,6 +416,98 @@ func (service *ServiceAPI) GetCostaRicaInflationRates(ctx context.Context, req G
 	sort.Slice(inflationRates, func(i, j int) bool {
 		return inflationRates[i].Date.After(inflationRates[j].Date)
 	})
+	return &GetCostaRicaInflationRatesResponse{
+		InflationRates: inflationRates,
+		Err:            nil,
+	}
+}
+
+func (service *ServiceAPI) GetCostaRicaInflationRatesByFilter(ctx context.Context, req GetDataByFilterRequest) *GetCostaRicaInflationRatesResponse {
+	filtersArray := []int64{}
+
+	if req.Periodicity == "quarterly" {
+		filtersArray = []int64{1, 3, 6, 9, 12}
+	}
+	if req.Periodicity == "biannual" {
+		filtersArray = []int64{6, 12}
+	}
+	if req.Periodicity == "annual" || req.Periodicity == "quinquennium" {
+		filtersArray = []int64{12}
+	}
+
+	inflationRates := []models.CostaRicaInflationRate{}
+
+	minimumDate := time.Date(1976, 0, 31, 0, 0, 0, 0, time.UTC)
+	bridgeDate := time.Date(1995, 0, 1, 0, 0, 0, 0, time.UTC)
+	today := time.Now()
+
+	errc := make(chan error, len(filtersArray))
+
+	for _, filter := range filtersArray {
+		go func(filter int64) {
+			result, err := service.Scrapper.GetCostaRicaInflationRateByDates(minimumDate, bridgeDate, filter)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping inflation rate by filter",
+					"date_from", minimumDate, "date_to", bridgeDate, "filter", filter, "error", err)
+				errc <- err
+				return
+			}
+			inflationRates = append(inflationRates, result...)
+			errc <- nil
+
+		}(filter)
+	}
+
+	errcBridgeToday := make(chan error, len(filtersArray))
+	for _, filter := range filtersArray {
+		go func(filter int64) {
+			result, err := service.Scrapper.GetCostaRicaInflationRateByDates(bridgeDate, today, filter)
+			if err != nil {
+				_ = level.Error(service.logger).Log("msg", "error scrapping inflation rate by filter",
+					"date_from", bridgeDate, "date_to", today, "filter", filter, "error", err)
+				errcBridgeToday <- err
+				return
+			}
+			inflationRates = append(inflationRates, result...)
+			errcBridgeToday <- nil
+
+		}(filter)
+	}
+
+	for i := 0; i < len(filtersArray); i++ {
+		if err := <-errc; err != nil {
+			return &GetCostaRicaInflationRatesResponse{
+				InflationRates: nil,
+				Err:            err,
+			}
+		}
+	}
+
+	for i := 0; i < len(filtersArray); i++ {
+		if err := <-errcBridgeToday; err != nil {
+			return &GetCostaRicaInflationRatesResponse{
+				InflationRates: nil,
+				Err:            err,
+			}
+		}
+	}
+
+	if req.Periodicity == "quinquennium" {
+		// filter exchanges rates by quinquennium from 1976 to today
+		inflationRatesQuinquennium := []models.CostaRicaInflationRate{}
+		for i := 0; i < len(inflationRates); i++ {
+			if i%5 == 0 {
+				inflationRatesQuinquennium = append(inflationRatesQuinquennium, inflationRates[i])
+			}
+		}
+
+		inflationRates = inflationRatesQuinquennium
+	}
+
+	sort.Slice(inflationRates, func(i, j int) bool {
+		return inflationRates[i].Date.After(inflationRates[j].Date)
+	})
+
 	return &GetCostaRicaInflationRatesResponse{
 		InflationRates: inflationRates,
 		Err:            nil,
