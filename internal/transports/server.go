@@ -61,7 +61,7 @@ func (ws *WebServer) StartServer() {
 
 	go func() {
 		_ = level.Debug(logger).Log("msg", "listening", "port", *httpAddr, "transport", "HTTP")
-		handler := MakeHTTPHandler(ctx, service)
+		handler := MakeHTTPHandler(ctx, service, logger)
 		errs <- http.ListenAndServe(*httpAddr, handler)
 	}()
 
