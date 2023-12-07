@@ -44,12 +44,15 @@ func NewBCCRScrapper(logger log.Logger, urls configuration.ScrapperConfig) *BCCR
 	}
 }
 
-func (scrapper *BCCRScrapper) getScrappingUrl(url string, dateFrom time.Time, dateTo time.Time, filtro int64) string {
-	return fmt.Sprintf(url, dateFrom.Format(utils.DATE_FORMAT), dateTo.Format(utils.DATE_FORMAT), fmt.Sprintf("%d", filtro))
+func (scrapper *BCCRScrapper) getScrappingUrlWithFilter(url string, dateFrom time.Time, dateTo time.Time, filter int64) string {
+	return fmt.Sprintf(url, dateFrom.Format(utils.DATE_FORMAT), dateTo.Format(utils.DATE_FORMAT), fmt.Sprintf("%d", filter))
+}
+func (scrapper *BCCRScrapper) getScrappingUrl(url string, dateFrom time.Time, dateTo time.Time) string {
+	return fmt.Sprintf(url, dateFrom.Format(utils.DATE_FORMAT), dateTo.Format(utils.DATE_FORMAT))
 }
 
 func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, dateTo time.Time, filtro int64) ([]models.ExchangeRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.ExchangeRateUrl, dateFrom, dateTo, filtro)
+	url := scrapper.getScrappingUrlWithFilter(scrapper.urls.ExchangeRateUrl, dateFrom, dateTo, filtro)
 	collyCollector := colly.NewCollector()
 
 	exchangesRates := []models.ExchangeRate{}
@@ -89,7 +92,7 @@ func (scrapper *BCCRScrapper) GetDollarColonesChangeByDates(dateFrom time.Time, 
 }
 
 func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.ExchangeRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.ExchangeRateUrl, date, date, 0)
+	url := scrapper.getScrappingUrlWithFilter(scrapper.urls.ExchangeRateUrl, date, date, 0)
 	collyCollector := colly.NewCollector()
 
 	todayExchangeRate := models.ExchangeRate{}
@@ -120,7 +123,7 @@ func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.Exc
 }
 
 func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.BasicPassiveRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.BasicPassiveRateUrl, dateFrom, dateTo, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.BasicPassiveRateUrl, dateFrom, dateTo)
 
 	yearFrom := dateFrom.Year()
 	yearTo := dateTo.Year()
@@ -175,7 +178,7 @@ func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dat
 }
 
 func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models.BasicPassiveRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.BasicPassiveRateUrl, date, date, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.BasicPassiveRateUrl, date, date)
 
 	collyCollector := colly.NewCollector()
 
@@ -206,7 +209,7 @@ func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models
 }
 
 func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.MonetaryPolicyRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.MonetaryPolicyRateUrl, dateFrom, dateTo, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.MonetaryPolicyRateUrl, dateFrom, dateTo)
 
 	yearFrom := dateFrom.Year()
 	yearTo := dateTo.Year()
@@ -260,7 +263,7 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, d
 }
 
 func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDate(date time.Time) (*models.MonetaryPolicyRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.MonetaryPolicyRateUrl, date, date, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.MonetaryPolicyRateUrl, date, date)
 
 	collyCollector := colly.NewCollector()
 
@@ -291,7 +294,7 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDate(date time.Time) (*mode
 }
 
 func (scrapper *BCCRScrapper) GetPrimeRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.PrimeRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.PrimeRateUrl, dateFrom, dateTo, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.PrimeRateUrl, dateFrom, dateTo)
 
 	yearFrom := dateFrom.Year()
 	yearTo := dateTo.Year()
@@ -345,7 +348,7 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDates(dateFrom time.Time, dateTo tim
 }
 
 func (scrapper *BCCRScrapper) GetPrimeRateByDate(date time.Time) (*models.PrimeRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.PrimeRateUrl, date, date, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.PrimeRateUrl, date, date)
 
 	collyCollector := colly.NewCollector()
 
@@ -376,7 +379,7 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDate(date time.Time) (*models.PrimeR
 }
 
 func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Time, dateTo time.Time, filter int64) ([]models.CostaRicaInflationRate, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo, filter)
+	url := scrapper.getScrappingUrlWithFilter(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo, filter)
 	collyCollector := colly.NewCollector()
 
 	inflationRates := []models.CostaRicaInflationRate{}
@@ -415,7 +418,7 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Tim
 func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*models.CostaRicaInflationRate, error) {
 	dateFrom := time.Date(date.Year(), date.Month()-1, 1, 0, 0, 0, 0, time.UTC)
 	dateTo := time.Date(date.Year(), date.Month()-1, 31, 0, 0, 0, 0, time.UTC)
-	url := scrapper.getScrappingUrl(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo, 0)
+	url := scrapper.getScrappingUrlWithFilter(scrapper.urls.InflationCostaRicaUrl, dateFrom, dateTo, 0)
 	collyCollector := colly.NewCollector()
 
 	inflationRate := models.CostaRicaInflationRate{}
@@ -537,7 +540,7 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDate(date time.Time) (*models
 }
 
 func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, dateTo time.Time) ([]models.TreasuryRateUSA, error) {
-	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, dateFrom, dateTo, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, dateFrom, dateTo)
 	collyCollector := colly.NewCollector()
 
 	treasuryRates := []models.TreasuryRateUSA{}
@@ -575,7 +578,7 @@ func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, date
 
 func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDate(date time.Time) (*models.TreasuryRateUSA, error) {
 	yesterday := date.AddDate(0, 0, -1)
-	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, yesterday, yesterday, 0)
+	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, yesterday, yesterday)
 
 	collyCollector := colly.NewCollector()
 
