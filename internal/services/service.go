@@ -105,32 +105,50 @@ func (service *ServiceAPI) GetExchangeRatesByFilter(ctx context.Context, req Get
 	filtersArray := []int64{}
 
 	if req.Periodicity == "quarterly" {
-		filtersArray = []int64{31, 91, 182, 274, 366}
+		filtersArray = []int64{1, 3, 6, 9, 12}
 	}
 	if req.Periodicity == "biannual" {
-		filtersArray = []int64{182, 366}
+		filtersArray = []int64{6, 12}
 	}
 	if req.Periodicity == "annual" || req.Periodicity == "quinquennium" {
-		filtersArray = []int64{366}
+		filtersArray = []int64{12}
 	}
 
 	exchangeRates := []models.ExchangeRate{}
-	minimumDate := time.Date(1983, 0, 1, 0, 0, 0, 0, time.UTC)
+
+	minimumDate := time.Date(1983, 0, 31, 0, 0, 0, 0, time.UTC)
+	bridgeDate := time.Date(2003, 0, 1, 0, 0, 0, 0, time.UTC)
 	today := time.Now()
 
 	errc := make(chan error, len(filtersArray))
 
 	for _, filter := range filtersArray {
 		go func(filter int64) {
-			result, err := service.Scrapper.GetDollarColonesChangeByDates(minimumDate, today, filter)
+			result, err := service.Scrapper.GetDollarColonesChangeByDates(minimumDate, bridgeDate, filter)
 			if err != nil {
-				_ = level.Debug(service.logger).Log("msg", "error scrapping exchange rate by filter",
-					"date_from", minimumDate, "date_to", today, "filter", filter, "error", err)
+				_ = level.Debug(service.logger).Log("msg", "error scrapping inflation rate by filter",
+					"date_from", minimumDate, "date_to", bridgeDate, "filter", filter, "error", err)
 				errc <- err
 				return
 			}
 			exchangeRates = append(exchangeRates, result...)
 			errc <- nil
+
+		}(filter)
+	}
+
+	errcBridgeToday := make(chan error, len(filtersArray))
+	for _, filter := range filtersArray {
+		go func(filter int64) {
+			result, err := service.Scrapper.GetDollarColonesChangeByDates(bridgeDate, today, filter)
+			if err != nil {
+				_ = level.Debug(service.logger).Log("msg", "error scrapping inflation rate by filter",
+					"date_from", bridgeDate, "date_to", today, "filter", filter, "error", err)
+				errcBridgeToday <- err
+				return
+			}
+			exchangeRates = append(exchangeRates, result...)
+			errcBridgeToday <- nil
 
 		}(filter)
 	}
@@ -144,8 +162,17 @@ func (service *ServiceAPI) GetExchangeRatesByFilter(ctx context.Context, req Get
 		}
 	}
 
+	for i := 0; i < len(filtersArray); i++ {
+		if err := <-errcBridgeToday; err != nil {
+			return &GetAllDollarColonesChangesResponse{
+				ExchangesRates: nil,
+				Err:            err,
+			}
+		}
+	}
+
 	if req.Periodicity == "quinquennium" {
-		// filter exchanges rates by quinquennium from 1983 to today
+		// filter exchanges rates by quinquennium from 1976 to today
 		exchangeRatesQuinquennium := []models.ExchangeRate{}
 		for i := 0; i < len(exchangeRates); i++ {
 			if i%5 == 0 {
