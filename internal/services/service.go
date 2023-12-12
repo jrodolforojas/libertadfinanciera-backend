@@ -105,13 +105,13 @@ func (service *ServiceAPI) GetExchangeRatesByFilter(ctx context.Context, req Get
 	filtersArray := []int64{}
 
 	if req.Periodicity == "quarterly" {
-		filtersArray = []int64{1, 3, 6, 9, 12}
+		filtersArray = []int64{31, 91, 182, 274, 366}
 	}
 	if req.Periodicity == "biannual" {
-		filtersArray = []int64{6, 12}
+		filtersArray = []int64{182, 366}
 	}
 	if req.Periodicity == "annual" || req.Periodicity == "quinquennium" {
-		filtersArray = []int64{12}
+		filtersArray = []int64{366}
 	}
 
 	exchangeRates := []models.ExchangeRate{}
