@@ -349,7 +349,6 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDates(dateFrom time.Time, dateTo tim
 
 func (scrapper *BCCRScrapper) GetPrimeRateByDate(date time.Time) (*models.PrimeRate, error) {
 	url := scrapper.getScrappingUrl(scrapper.urls.PrimeRateUrl, date, date)
-
 	collyCollector := colly.NewCollector()
 
 	primeRate := models.PrimeRate{}
@@ -359,6 +358,10 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDate(date time.Time) (*models.PrimeR
 		dateHTML := h.ChildText("#Table60 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(1) > p")
 		yearHTML := h.ChildText("#Table60 > tbody > tr:nth-child(1) > td:nth-child(2) > span > table > tbody > tr > td.celda60 > p")
 
+		if valueHTML == "" || dateHTML == "" || yearHTML == "" {
+			_ = level.Error(scrapper.logger).Log("msg", "error getting prime rate from html", "url", url, "date", date)
+			return
+		}
 		primeRateHTML := models.PrimeRateHTML{
 			Value: valueHTML,
 			Date:  dateHTML + " " + yearHTML,
@@ -366,7 +369,7 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDate(date time.Time) (*models.PrimeR
 
 		toPrimeRate, err := primeRateHTML.ToPrimeRate()
 		if err != nil {
-			_ = level.Debug(scrapper.logger).Log("msg", "error converting from MonetaryPolicyRateHTML to MonetaryPolicyRate models", "error", err)
+			_ = level.Error(scrapper.logger).Log("msg", "error converting from MonetaryPolicyRateHTML to MonetaryPolicyRate models", "error", err)
 			return
 		}
 		primeRate = toPrimeRate
