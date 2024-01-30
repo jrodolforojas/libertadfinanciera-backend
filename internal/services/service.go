@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"time"
 
@@ -612,21 +613,24 @@ func (service *ServiceAPI) GetTreasuryRatesUSA(ctx context.Context, req GetAllDo
 	}
 }
 
+const MAXIMUM_TRIES = 3
+
 func (service *ServiceAPI) GetTodayTreasuryRateUSA(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayTreasuryRateUSAResponse {
 	date := time.Now()
-	todayTreasuryRateUSA, err := service.Scrapper.GetTreasuryRateUSAByDate(date)
-	if err != nil {
-		_ = level.Debug(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date,
-			"error", err)
-		return &GetTodayTreasuryRateUSAResponse{
-			TreasuryRateUSA: nil,
-			Err:             err,
+	for i := 0; i < MAXIMUM_TRIES; i++ {
+		todayTreasuryRateUSA, err := service.Scrapper.GetTreasuryRateUSAByDate(date)
+		if todayTreasuryRateUSA.Value != 0 {
+			return &GetTodayTreasuryRateUSAResponse{
+				TreasuryRateUSA: todayTreasuryRateUSA,
+				Err:             err,
+			}
 		}
+		date = date.AddDate(0, 0, -1)
 	}
-
+	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayTreasuryRateUSAResponse{
-		TreasuryRateUSA: todayTreasuryRateUSA,
-		Err:             err,
+		TreasuryRateUSA: nil,
+		Err:             errors.New("No results found"),
 	}
 }
 
