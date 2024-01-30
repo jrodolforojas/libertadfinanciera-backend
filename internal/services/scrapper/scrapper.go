@@ -577,9 +577,7 @@ func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, date
 }
 
 func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDate(date time.Time) (*models.TreasuryRateUSA, error) {
-	yesterday := date.AddDate(0, 0, -1)
-	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, yesterday, yesterday)
-
+	url := scrapper.getScrappingUrl(scrapper.urls.TreasuryRateUSAUrl, date, date)
 	collyCollector := colly.NewCollector()
 
 	treasuryRate := models.TreasuryRateUSA{}
@@ -595,11 +593,12 @@ func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDate(date time.Time) (*models.
 
 		rate, err := toTreasuryRateUSA(treasuryRateHTML)
 		if err != nil {
-			_ = level.Debug(scrapper.logger).Log("msg", "error converting from MonetaryPolicyRateHTML to MonetaryPolicyRate models", "error", err)
+			_ = level.Error(scrapper.logger).Log("msg", "error converting from MonetaryPolicyRateHTML to MonetaryPolicyRate models",
+				"url", url, "error", err, "date", date)
 			return
 		}
 		treasuryRate = rate
-		treasuryRate.Date = yesterday
+		treasuryRate.Date = date
 	})
 
 	collyCollector.Visit(url)
