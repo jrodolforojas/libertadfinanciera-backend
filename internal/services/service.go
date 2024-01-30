@@ -370,21 +370,24 @@ func (service *ServiceAPI) GetPrimeRates(ctx context.Context, req GetAllDollarCo
 	}
 }
 
+const MAXIMUM_TRIES = 3
+
 func (service *ServiceAPI) GetTodayPrimeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayPrimeRateResponse {
 	date := time.Now()
-	todayPrimeRate, err := service.Scrapper.GetPrimeRateByDate(date)
-	if err != nil {
-		_ = level.Debug(service.logger).Log("msg", "error scrapping basic passive rate by date", "date", date,
-			"error", err)
-		return &GetTodayPrimeRateResponse{
-			PrimeRate: nil,
-			Err:       err,
+	for i := 0; i < MAXIMUM_TRIES; i++ {
+		primeRate, err := service.Scrapper.GetPrimeRateByDate(date)
+		if primeRate.Value != 0 {
+			return &GetTodayPrimeRateResponse{
+				PrimeRate: primeRate,
+				Err:       err,
+			}
 		}
+		date = date.AddDate(0, 0, -1)
 	}
-
+	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayPrimeRateResponse{
-		PrimeRate: todayPrimeRate,
-		Err:       err,
+		PrimeRate: nil,
+		Err:       errors.New("No results found"),
 	}
 }
 
@@ -612,8 +615,6 @@ func (service *ServiceAPI) GetTreasuryRatesUSA(ctx context.Context, req GetAllDo
 		Err:              nil,
 	}
 }
-
-const MAXIMUM_TRIES = 3
 
 func (service *ServiceAPI) GetTodayTreasuryRateUSA(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayTreasuryRateUSAResponse {
 	date := time.Now()
