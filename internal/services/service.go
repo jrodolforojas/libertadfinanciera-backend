@@ -195,18 +195,20 @@ func (service *ServiceAPI) GetExchangeRatesByFilter(ctx context.Context, req Get
 }
 func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayExchangeRateResponse {
 	date := time.Now()
-	todayExchangeRate, err := service.Scrapper.GetExchangeRateByDate(date)
-	if err != nil {
-		_ = level.Debug(service.logger).Log("msg", "error scrapping todayExchangeRate", "dateFrom", date, "dateTo", date, "error", err)
-		return &GetTodayExchangeRateResponse{
-			ExchangesRate: nil,
-			Err:           err,
+	for i := 0; i < MAXIMUM_TRIES; i++ {
+		rate, err := service.Scrapper.GetExchangeRateByDate(date)
+		if rate.BuyPrice != 0 && rate.SalePrice != 0 {
+			return &GetTodayExchangeRateResponse{
+				ExchangesRate: rate,
+				Err:           err,
+			}
 		}
+		date = date.AddDate(0, 0, -1)
 	}
-
+	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayExchangeRateResponse{
-		ExchangesRate: todayExchangeRate,
-		Err:           nil,
+		ExchangesRate: nil,
+		Err:           errors.New("No results found"),
 	}
 }
 
@@ -256,19 +258,20 @@ func (service *ServiceAPI) GetBasicPassiveRates(ctx context.Context, req GetAllD
 
 func (service *ServiceAPI) GetTodayBasicPassiveRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayBasicPassiveRateResponse {
 	date := time.Now()
-	todayBasicPassiveRate, err := service.Scrapper.GetBasicPassiveDateByDate(date)
-	if err != nil {
-		_ = level.Debug(service.logger).Log("msg", "error scrapping basic passive rate by date", "date", date,
-			"error", err)
-		return &GetTodayBasicPassiveRateResponse{
-			BasicPassiveRate: nil,
-			Err:              err,
+	for i := 0; i < MAXIMUM_TRIES; i++ {
+		rate, err := service.Scrapper.GetBasicPassiveDateByDate(date)
+		if rate.Value != 0 {
+			return &GetTodayBasicPassiveRateResponse{
+				BasicPassiveRate: rate,
+				Err:              err,
+			}
 		}
+		date = date.AddDate(0, 0, -1)
 	}
-
+	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayBasicPassiveRateResponse{
-		BasicPassiveRate: todayBasicPassiveRate,
-		Err:              nil,
+		BasicPassiveRate: nil,
+		Err:              errors.New("No results found"),
 	}
 }
 
@@ -314,19 +317,20 @@ func (service *ServiceAPI) GetMonetaryPolicyRates(ctx context.Context, req GetAl
 
 func (service *ServiceAPI) GetTodayMonetaryPolicyRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayMonetaryPolicyRateResponse {
 	date := time.Now()
-	todayMonetaryPolicyRate, err := service.Scrapper.GetMonetaryPolicyRateByDate(date)
-	if err != nil {
-		_ = level.Debug(service.logger).Log("msg", "error scrapping basic passive rate by date", "date", date,
-			"error", err)
-		return &GetTodayMonetaryPolicyRateResponse{
-			MonetaryPolicyRate: nil,
-			Err:                err,
+	for i := 0; i < MAXIMUM_TRIES; i++ {
+		rate, err := service.Scrapper.GetMonetaryPolicyRateByDate(date)
+		if rate.Value != 0 {
+			return &GetTodayMonetaryPolicyRateResponse{
+				MonetaryPolicyRate: rate,
+				Err:                err,
+			}
 		}
+		date = date.AddDate(0, 0, -1)
 	}
-
+	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayMonetaryPolicyRateResponse{
-		MonetaryPolicyRate: todayMonetaryPolicyRate,
-		Err:                err,
+		MonetaryPolicyRate: nil,
+		Err:                errors.New("No results found"),
 	}
 }
 
@@ -547,19 +551,20 @@ func (service *ServiceAPI) GetCostaRicaInflationRatesByFilter(ctx context.Contex
 
 func (service *ServiceAPI) GetCostaRicaInflationRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayCostaRicaInflationRateResponse {
 	date := time.Now()
-	todayCostaRicaInflationRate, err := service.Scrapper.GetCostaRicaInflationRateByDate(date)
-	if err != nil {
-		_ = level.Debug(service.logger).Log("msg", "error scrapping basic passive rate by date", "date", date,
-			"error", err)
-		return &GetTodayCostaRicaInflationRateResponse{
-			InflationRate: nil,
-			Err:           err,
+	for i := 0; i < MAXIMUM_TRIES; i++ {
+		inflationRate, err := service.Scrapper.GetCostaRicaInflationRateByDate(date)
+		if inflationRate.Value != 0 {
+			return &GetTodayCostaRicaInflationRateResponse{
+				InflationRate: inflationRate,
+				Err:           err,
+			}
 		}
+		date = date.AddDate(0, 0, -1)
 	}
-
+	_ = level.Error(service.logger).Log("msg", "error scrapping Costa Rica inflation rate by date", "date", date)
 	return &GetTodayCostaRicaInflationRateResponse{
-		InflationRate: todayCostaRicaInflationRate,
-		Err:           err,
+		InflationRate: nil,
+		Err:           errors.New("No results found"),
 	}
 }
 
@@ -618,7 +623,8 @@ func (service *ServiceAPI) GetTreasuryRatesUSA(ctx context.Context, req GetAllDo
 
 func (service *ServiceAPI) GetTodayTreasuryRateUSA(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayTreasuryRateUSAResponse {
 	date := time.Now()
-	for i := 0; i < MAXIMUM_TRIES; i++ {
+	const treasuryRateMaxiumTries = 30
+	for i := 0; i < treasuryRateMaxiumTries; i++ {
 		todayTreasuryRateUSA, err := service.Scrapper.GetTreasuryRateUSAByDate(date)
 		if todayTreasuryRateUSA.Value != 0 {
 			return &GetTodayTreasuryRateUSAResponse{

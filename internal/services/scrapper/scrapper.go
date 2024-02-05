@@ -102,6 +102,11 @@ func (scrapper *BCCRScrapper) GetExchangeRateByDate(date time.Time) (*models.Exc
 		buyHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr > td")
 		saleHTML := h.ChildText("#theTable400 > tbody > tr:nth-child(2) > td:nth-child(3) > table > tbody > tr > td > table > tbody > tr > td")
 
+		if buyHTML == "" || saleHTML == "" || date == "" {
+			_ = level.Debug(scrapper.logger).Log("message", "error getting exchange rate from html", "url", url, "date", date)
+			return
+		}
+
 		result := models.ExchangeRateHTML{
 			SalePrice: saleHTML,
 			BuyPrice:  buyHTML,
@@ -151,7 +156,7 @@ func (scrapper *BCCRScrapper) GetBasicPassiveRateByDates(dateFrom time.Time, dat
 			for i := 0; i < len(values); i++ {
 				date := row[0] + " " + yearsHeader[i]
 				value := values[i]
-				if value != "" {
+				if value != "" && date != "" {
 					basicPassiveRate := models.BasicPassiveRateHTML{
 						Value: value,
 						Date:  date,
@@ -189,6 +194,11 @@ func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models
 		dateHTML := h.ChildText("#Table17 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(1) > p")
 		yearHTML := h.ChildText("#Table17 > tbody > tr:nth-child(1) > td:nth-child(2) > span > table > tbody > tr > td.celda17 > p")
 
+		if valueHTML == "" || dateHTML == "" || yearHTML == "" {
+			_ = level.Error(scrapper.logger).Log("msg", "error getting basic passive rate from html", "url", url, "date", date)
+			return
+		}
+
 		basicPassiveRateHTML := models.BasicPassiveRateHTML{
 			Value: valueHTML,
 			Date:  dateHTML + " " + yearHTML,
@@ -224,10 +234,15 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, d
 		column := h.ChildTexts("#Table779 > tbody > tr > td > span > table > tbody > tr > td")
 
 		yearsHeader := column[1:yearDifference]
+		years := []string{}
+
+		for _, year := range yearsHeader {
+			years = append(years, year[:4])
+		}
 
 		result := [][]string{}
-		for i := yearDifference; i < len(column); i += (len(yearsHeader) + 1) {
-			row := column[i : i+len(yearsHeader)+1]
+		for i := yearDifference; i < len(column); i += (len(years) + 1) {
+			row := column[i : i+len(years)+1]
 			result = append(result, row)
 		}
 
@@ -235,9 +250,9 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, d
 		for _, row := range result {
 			values := row[1:] // <-- Get rates without first element (the date)
 			for i := 0; i < len(values); i++ {
-				date := row[0] + " " + yearsHeader[i]
+				date := row[0] + " " + years[i]
 				value := values[i]
-				if value != "" {
+				if value != "" && date != "" {
 					monetaryPolicyRate := models.MonetaryPolicyRateHTML{
 						Value: value,
 						Date:  date,
@@ -249,7 +264,7 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, d
 		for _, monetaryPolicyRateHTML := range monetaryPolicyRatesHTML {
 			toMonetaryPolicyRate, err := monetaryPolicyRateHTML.ToMonetaryPolicyRate()
 			if err != nil {
-				_ = level.Debug(scrapper.logger).Log("message", "error converting from html to monetary policy rate", "result", result, "error", err)
+				_ = level.Debug(scrapper.logger).Log("message", "error converting from html to monetary policy rate", "error", err)
 				return
 			}
 
@@ -273,6 +288,11 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDate(date time.Time) (*mode
 		valueHTML := h.ChildText("#Table779 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(2) > p")
 		dateHTML := h.ChildText("#Table779 > tbody > tr:nth-child(2) > td:nth-child(2) > span > table > tbody > tr > td:nth-child(1) > p")
 		yearHTML := h.ChildText("#Table779 > tbody > tr:nth-child(1) > td:nth-child(2) > span > table > tbody > tr > td.celda779 > p")
+
+		if valueHTML == "" || dateHTML == "" || yearHTML == "" {
+			_ = level.Error(scrapper.logger).Log("msg", "error getting monetary policy rate from html", "url", url, "date", date)
+			return
+		}
 
 		monetaryPolicyRateHTML := models.MonetaryPolicyRateHTML{
 			Value: valueHTML,
@@ -322,7 +342,7 @@ func (scrapper *BCCRScrapper) GetPrimeRateByDates(dateFrom time.Time, dateTo tim
 			for i := 0; i < len(values); i++ {
 				date := row[0] + " " + yearsHeader[i]
 				value := values[i]
-				if value != "" {
+				if value != "" && date != "" {
 					primeRateHTML := models.PrimeRateHTML{
 						Value: value,
 						Date:  date,
@@ -394,7 +414,7 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDates(dateFrom time.Tim
 		inflationRatesHTML := []models.CostaRicaInflationRateHTML{}
 		for index, value := range interanualVariation {
 			dateHTML := columns[index]
-			if value != "" {
+			if value != "" && dateHTML != "" {
 				inflationRateHTML := models.CostaRicaInflationRateHTML{
 					Value: value,
 					Date:  dateHTML,
@@ -430,6 +450,10 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*
 		dateHTML := h.ChildText("#theTable2732 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr > td")
 		valueHTML := h.ChildText("#theTable2732 > tbody > tr:nth-child(2) > td:nth-child(4) > table > tbody > tr > td > table > tbody > tr > td")
 
+		if valueHTML == "" || dateHTML == "" {
+			_ = level.Debug(scrapper.logger).Log("msg", "error getting inflation rate from html", "url", url, "date", date)
+			return
+		}
 		inflationRateHTML := models.CostaRicaInflationRateHTML{
 			Value: valueHTML,
 			Date:  dateHTML,
@@ -555,7 +579,7 @@ func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, date
 		treasuryRatesHTML := []models.TreasuryRateUSAHTML{}
 		for index, value := range rates {
 			dateHTML := columns[index]
-			if value != "" {
+			if value != "" && dateHTML != "" {
 				treasuryRateHTML := models.TreasuryRateUSAHTML{
 					Value: value,
 					Date:  dateHTML,
@@ -567,7 +591,7 @@ func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDates(dateFrom time.Time, date
 		for _, treasuryRateHTML := range treasuryRatesHTML {
 			treasuryRate, err := toTreasuryRateUSA(treasuryRateHTML)
 			if err != nil {
-				_ = level.Debug(scrapper.logger).Log("msg", "error converting from TreasuryRateUSAHTML to TreasuryRateUSA models", "error", err)
+				_ = level.Error(scrapper.logger).Log("msg", "error converting from TreasuryRateUSAHTML to TreasuryRateUSA models", "error", err, "rate", treasuryRateHTML)
 				return
 			}
 			treasuryRates = append(treasuryRates, treasuryRate)
@@ -588,6 +612,11 @@ func (scrapper *BCCRScrapper) GetTreasuryRateUSAByDate(date time.Time) (*models.
 	collyCollector.OnHTML("#theTable677 > tbody", func(h *colly.HTMLElement) {
 		valueHTML := h.ChildText("#col_135401 > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td")
 		dateHTML := h.ChildText("#theTable677 > tbody > tr:nth-child(2) > td:nth-child(1) > table > tbody > tr > td")
+
+		if valueHTML == "" || dateHTML == "" {
+			_ = level.Error(scrapper.logger).Log("msg", "error getting treasury rate from html", "url", url, "date", date)
+			return
+		}
 
 		treasuryRateHTML := models.TreasuryRateUSAHTML{
 			Value: valueHTML,
