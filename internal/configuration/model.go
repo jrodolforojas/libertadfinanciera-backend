@@ -9,7 +9,7 @@ type ServerConfig struct {
 }
 
 type AddressConfig struct {
-	Port           string   `env:"PORT"`
+	Port           string   `env:"PORT" envDefault:"8081"`
 	AllowedOrigins []string `env:"ALLOWED_ORIGINS"`
 }
 
@@ -20,7 +20,7 @@ type ScrapperConfig struct {
 	PrimeRateUrl          string `env:"PRIME_RATE_URL"`
 	InflationCostaRicaUrl string `env:"INFLATION_COSTA_RICA_URL"`
 	InflationUSAUrl       string `env:"INFLATION_USA_URL"`
-	TreasuryRateUSAUrl		string `env:"TREASURY_RATE_USA_URL"`
+	TreasuryRateUSAUrl    string `env:"TREASURY_RATE_USA_URL"`
 }
 
 type DatabaseConfig struct {
