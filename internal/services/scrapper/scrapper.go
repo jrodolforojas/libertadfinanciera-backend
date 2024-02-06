@@ -221,6 +221,7 @@ func (scrapper *BCCRScrapper) GetBasicPassiveDateByDate(date time.Time) (*models
 func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.MonetaryPolicyRate, error) {
 	url := scrapper.getScrappingUrl(scrapper.urls.MonetaryPolicyRateUrl, dateFrom, dateTo)
 
+	_ = level.Debug(scrapper.logger).Log("message", "url", url)
 	yearFrom := dateFrom.Year()
 	yearTo := dateTo.Year()
 
@@ -240,8 +241,10 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, d
 			years = append(years, year[:4])
 		}
 
+		_ = level.Debug(scrapper.logger).Log("message", "years", years, "yearsHeader", yearsHeader, "yearDifference", yearDifference)
 		result := [][]string{}
 		for i := yearDifference; i < len(column); i += (len(years) + 1) {
+			_ = level.Debug(scrapper.logger).Log("message", "i", i, "column", len(column), "years", len(years), "operation", i+(len(years)+1))
 			row := column[i : i+len(years)+1]
 			result = append(result, row)
 		}
