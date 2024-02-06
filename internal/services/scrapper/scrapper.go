@@ -241,10 +241,9 @@ func (scrapper *BCCRScrapper) GetMonetaryPolicyRateByDates(dateFrom time.Time, d
 			years = append(years, year[:4])
 		}
 
-		_ = level.Debug(scrapper.logger).Log("message", "years", years, "yearsHeader", yearsHeader, "yearDifference", yearDifference)
+		_ = level.Debug(scrapper.logger).Log("years", years, "yearDifference", yearDifference)
 		result := [][]string{}
 		for i := yearDifference; i < len(column); i += (len(years) + 1) {
-			_ = level.Debug(scrapper.logger).Log("message", "i", i, "column", len(column), "years", len(years), "operation", i+(len(years)+1))
 			row := column[i : i+len(years)+1]
 			result = append(result, row)
 		}
