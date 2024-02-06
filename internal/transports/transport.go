@@ -6,9 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	httptransport "github.com/go-kit/kit/transport/http"
-	kitHTTP "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/configuration"
 	"github.com/jrodolforojas/libertadfinanciera-backend/internal/middleware"
@@ -20,25 +18,19 @@ type errorer interface {
 	error() error
 }
 
-// MakeJSONEncoder creates a new json enooder
-func MakeJSONEncoder(logger log.Logger) kitHTTP.EncodeResponseFunc {
-	return func(ctx context.Context, w http.ResponseWriter, response interface{}) error {
-		if e, ok := response.(errorer); ok && e.error() != nil {
-			encodeError(ctx, e.error(), w, logger)
-			return nil
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		return json.NewEncoder(w).Encode(response)
-	}
-}
-
-func encodeError(_ context.Context, err error, w http.ResponseWriter, logger log.Logger) {
-	if err == nil {
-		_ = level.Error(logger).Log("msg", "error encoding error", "error", err)
+func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	if e, ok := response.(errorer); ok && e.error() != nil {
+		encodeError(ctx, e.error(), w)
+		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeError(_ context.Context, err error, w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(codeFrom(err))
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
 }
@@ -69,89 +61,89 @@ func MakeHTTPHandler(ctx context.Context, s *services.ServiceAPI, logger log.Log
 	router.Methods(http.MethodGet).Path("/exchange_rates").Handler(httptransport.NewServer(
 		endpoints.GetAllDolarColonesChanges,
 		decodeGetAllDolarColonesChangesRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 
 	router.Methods(http.MethodGet).Path("/exchange_rates/today").Handler(httptransport.NewServer(
 		endpoints.GetTodayExchangeRate,
 		decodeTodayExchangeRateRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 
 	router.Methods(http.MethodGet).Path("/exchange_rates/filter").Handler(httptransport.NewServer(
 		endpoints.GetExchangeRatesByFilter,
 		decodeGetDataByFilterRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 
 	router.Methods(http.MethodGet).Path("/country_interes_rates/cr").Handler(httptransport.NewServer(
 		endpoints.GetBasicPassiveRates,
 		decodeGetAllDolarColonesChangesRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 
 	router.Methods(http.MethodGet).Path("/country_interes_rates/cr/today").Handler(httptransport.NewServer(
 		endpoints.GetTodayBasicPassiveRate,
 		decodeTodayExchangeRateRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/country_interes_rates/usa").Handler(httptransport.NewServer(
 		endpoints.GetTreasuryRatesUSA,
 		decodeGetAllDolarColonesChangesRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/country_interes_rates/usa/today").Handler(httptransport.NewServer(
 		endpoints.GetTreasuryRateUSA,
 		decodeTodayExchangeRateRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/monetary_policy_rates").Handler(httptransport.NewServer(
 		endpoints.GetMonetaryPolicyRates,
 		decodeGetAllDolarColonesChangesRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/monetary_policy_rates/today").Handler(httptransport.NewServer(
 		endpoints.GetTodayMonetaryPolicyRate,
 		decodeTodayExchangeRateRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/prime_rates").Handler(httptransport.NewServer(
 		endpoints.GetPrimeRates,
 		decodeGetAllDolarColonesChangesRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/prime_rates/today").Handler(httptransport.NewServer(
 		endpoints.GetPrimeRate,
 		decodeTodayExchangeRateRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 
 	router.Methods(http.MethodGet).Path("/inflation_rates/cr").Handler(httptransport.NewServer(
 		endpoints.GetCostaRicaInflationRates,
 		decodeGetAllDolarColonesChangesRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 
 	router.Methods(http.MethodGet).Path("/inflation_rates/cr/filter").Handler(httptransport.NewServer(
 		endpoints.GetCostaRicaInflationRatesByFilter,
 		decodeGetDataByFilterRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 
 	router.Methods(http.MethodGet).Path("/inflation_rates/cr/today").Handler(httptransport.NewServer(
 		endpoints.GetCostaRicaInflationRate,
 		decodeTodayExchangeRateRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/inflation_rates/usa").Handler(httptransport.NewServer(
 		endpoints.GetUSAInflationRates,
 		decodeGetAllDolarColonesChangesRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	router.Methods(http.MethodGet).Path("/inflation_rates/usa/today").Handler(httptransport.NewServer(
 		endpoints.GetUSAInflationRate,
 		decodeTodayExchangeRateRequest,
-		MakeJSONEncoder(logger),
+		encodeResponse,
 	))
 	return router
 }
