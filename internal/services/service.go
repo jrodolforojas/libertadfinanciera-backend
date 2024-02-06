@@ -559,7 +559,7 @@ func (service *ServiceAPI) GetCostaRicaInflationRate(ctx context.Context, req Ge
 				Err:           err,
 			}
 		}
-		date = date.AddDate(0, 0, -1)
+		date = date.AddDate(0, -1, 0)
 	}
 	_ = level.Error(service.logger).Log("msg", "error scrapping Costa Rica inflation rate by date", "date", date)
 	return &GetTodayCostaRicaInflationRateResponse{
