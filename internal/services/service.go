@@ -374,7 +374,7 @@ func (service *ServiceAPI) GetPrimeRates(ctx context.Context, req GetAllDollarCo
 	}
 }
 
-const MAXIMUM_TRIES = 3
+const MAXIMUM_TRIES = 5
 
 func (service *ServiceAPI) GetTodayPrimeRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayPrimeRateResponse {
 	date := time.Now()
