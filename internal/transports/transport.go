@@ -18,6 +18,18 @@ type errorer interface {
 	error() error
 }
 
+type responseWriterWrapper struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+func (w *responseWriterWrapper) WriteHeader(statusCode int) {
+	if !w.wroteHeader {
+		w.ResponseWriter.WriteHeader(statusCode)
+		w.wroteHeader = true
+	}
+}
+
 func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	if e, ok := response.(errorer); ok && e.error() != nil {
 		encodeError(ctx, e.error(), w)
@@ -28,9 +40,13 @@ func encodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 }
 
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(codeFrom(err))
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	ww := &responseWriterWrapper{ResponseWriter: w}
+	if !ww.wroteHeader {
+		ww.Header().Set("Content-Type", "application/json; charset=utf-8")
+		ww.WriteHeader(http.StatusInternalServerError) // Only call once
+	}
+
+	json.NewEncoder(ww).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
 }
