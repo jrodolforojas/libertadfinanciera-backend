@@ -2,8 +2,6 @@ package scrapper
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -483,39 +481,52 @@ func (scrapper *BCCRScrapper) GetCostaRicaInflationRateByDate(date time.Time) (*
 
 func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dateTo time.Time) ([]models.USAInflationRate, error) {
 	url := scrapper.urls.InflationUSAUrl
+	collyCollector := colly.NewCollector()
 
 	inflationRates := []models.USAInflationRate{}
-	response, err := http.Get(url)
-	if err != nil {
-		_ = level.Debug(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
-	}
-	defer response.Body.Close()
 
-	responseData, err := io.ReadAll(response.Body)
-	if err != nil {
-		_ = level.Debug(scrapper.logger).Log("msg", "error reading response body", "error", err)
-	}
+	collyCollector.OnHTML("#table0", func(h *colly.HTMLElement) {
+		headersHTML := h.ChildText("#table0 > thead > tr")
+		yearsHTML := h.ChildTexts("#table0 > tbody > tr")
+		valueHTML := h.ChildTexts("#table0 > tbody > tr > td")
 
-	responseString := string(responseData)
-	tableRows := strings.Split(responseString, "~")
+		months := strings.Split(headersHTML, "  ")
 
-	for _, row := range tableRows {
-		fields := strings.Split(row, ",,")
-		value := ""
-		if len(fields) >= 3 {
-			value = strings.ReplaceAll(fields[3], " ", "")
+		years := []string{}
+		for _, year := range yearsHTML {
+			years = append(years, year[:4])
 		}
 
-		if value != "" {
-			inflationRateHTML := models.USAInflationRateHTML{
-				Value: value,
-				Date:  fields[0] + " " + fields[1],
+		indexYear := 0
+		indexMonth := 0
+
+		inflationRatesHTML := []models.USAInflationRateHTML{}
+		for index, value := range valueHTML {
+			if index%14 == 0 && index != 0 {
+				indexYear++
+			}
+			if index%14 == 0 && index != 0 {
+				indexMonth = 1
+			} else {
+				indexMonth++
 			}
 
+			if value != "" && months[indexMonth] != "" && years[indexYear] != "" && months[indexMonth] != "HALF1" && months[indexMonth] != "HALF2" {
+				inflationRateHTML := models.USAInflationRateHTML{
+					Value: value,
+					Date:  years[indexYear] + " " + months[indexMonth],
+				}
+
+				fmt.Printf("%s-%s: %s\n", years[indexYear], months[indexMonth], value)
+				inflationRatesHTML = append(inflationRatesHTML, inflationRateHTML)
+			}
+		}
+
+		for _, inflationRateHTML := range inflationRatesHTML {
 			inflationRate, err := toUSAInflationRate(inflationRateHTML)
 			if err != nil {
 				_ = level.Debug(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
-				return nil, err
+				return
 			}
 
 			// check if date is between dateFrom and dateTo
@@ -523,51 +534,65 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dat
 				inflationRates = append(inflationRates, inflationRate)
 			}
 		}
-	}
+	})
+
+	collyCollector.Visit(url)
 
 	return inflationRates, nil
 }
 
 func (scrapper *BCCRScrapper) GetUSAInflationRateByDate(date time.Time) (*models.USAInflationRate, error) {
 	url := scrapper.urls.InflationUSAUrl
+	collyCollector := colly.NewCollector()
 
 	inflationRate := models.USAInflationRate{}
-	response, err := http.Get(url)
-	if err != nil {
-		_ = level.Debug(scrapper.logger).Log("msg", "error getting response from url", "url", url, "error", err)
-	}
-	defer response.Body.Close()
 
-	responseData, err := io.ReadAll(response.Body)
-	if err != nil {
-		_ = level.Debug(scrapper.logger).Log("msg", "error reading response body", "error", err)
-	}
+	collyCollector.OnHTML("#table0", func(h *colly.HTMLElement) {
+		headersHTML := h.ChildText("#table0 > thead > tr")
+		yearsHTML := h.ChildTexts("#table0 > tbody > tr")
+		valueHTML := h.ChildTexts("#table0 > tbody > tr > td")
 
-	responseString := string(responseData)
-	tableRows := strings.Split(responseString, "~")
+		months := strings.Split(headersHTML, "  ")
 
-	row := tableRows[0]
-
-	fields := strings.Split(row, ",,")
-	value := ""
-	if len(fields) >= 3 {
-		value = strings.ReplaceAll(fields[3], " ", "")
-	}
-
-	if value != "" {
-		inflationRateHTML := models.USAInflationRateHTML{
-			Value: value,
-			Date:  fields[0] + " " + fields[1],
+		years := []string{}
+		for _, year := range yearsHTML {
+			years = append(years, year[:4])
 		}
 
-		todayInflationRate, err := toUSAInflationRate(inflationRateHTML)
+		indexYear := 0
+		indexMonth := 0
+
+		inflationRatesHTML := []models.USAInflationRateHTML{}
+		for index, value := range valueHTML {
+			if index%14 == 0 && index != 0 {
+				indexYear++
+			}
+			if index%14 == 0 && index != 0 {
+				indexMonth = 1
+			} else {
+				indexMonth++
+			}
+
+			if value != "" && months[indexMonth] != "" && years[indexYear] != "" && months[indexMonth] != "HALF1" && months[indexMonth] != "HALF2" {
+				inflationRateHTML := models.USAInflationRateHTML{
+					Value: value,
+					Date:  years[indexYear] + " " + months[indexMonth],
+				}
+
+				inflationRatesHTML = append(inflationRatesHTML, inflationRateHTML)
+			}
+		}
+
+		lastInflationRateHTML := inflationRatesHTML[len(inflationRatesHTML)-1]
+		lastInflationRate, err := toUSAInflationRate(lastInflationRateHTML)
 		if err != nil {
 			_ = level.Debug(scrapper.logger).Log("msg", "error converting from USAInflationRateHTML to USAInflationRate models", "error", err)
-			return nil, err
+			return
 		}
+		inflationRate = lastInflationRate
+	})
 
-		inflationRate = todayInflationRate
-	}
+	collyCollector.Visit(url)
 
 	return &inflationRate, nil
 }
