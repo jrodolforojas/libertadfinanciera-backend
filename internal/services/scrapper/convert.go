@@ -38,6 +38,21 @@ var prefixMonths = map[string]int{
 	"Dic": int(time.December),
 }
 
+var prefixMonthsEnglish = map[string]int{
+	"Jan": int(time.January),
+	"Feb": int(time.February),
+	"Mar": int(time.March),
+	"Apr": int(time.April),
+	"May": int(time.May),
+	"Jun": int(time.June),
+	"Jul": int(time.July),
+	"Aug": int(time.August),
+	"Sep": int(time.September),
+	"Oct": int(time.October),
+	"Nov": int(time.November),
+	"Dec": int(time.December),
+}
+
 func toCostaRicaInflationRate(costaRicaInflationRate models.CostaRicaInflationRateHTML) (models.CostaRicaInflationRate, error) {
 	dateArray := strings.Split(costaRicaInflationRate.Date, "/") // 0: Month, 1: Year
 	year, err := strconv.Atoi(dateArray[1])
@@ -92,10 +107,7 @@ func toUSAInflationRate(inflationRateHTML models.USAInflationRateHTML) (models.U
 	if err != nil {
 		return models.USAInflationRate{}, err
 	}
-	month, err := strconv.Atoi(dateArray[1])
-	if err != nil {
-		return models.USAInflationRate{}, err
-	}
+	month := prefixMonthsEnglish[dateArray[1]]
 	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 
 	lastDayOfMonth := date.AddDate(0, 1, -1)

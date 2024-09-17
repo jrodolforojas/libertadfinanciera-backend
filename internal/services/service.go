@@ -208,7 +208,7 @@ func (service *ServiceAPI) GetTodayExchangeRate(ctx context.Context, req GetToda
 	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayExchangeRateResponse{
 		ExchangesRate: nil,
-		Err:           errors.New("No results found"),
+		Err:           errors.New("no results found"),
 	}
 }
 
@@ -271,7 +271,7 @@ func (service *ServiceAPI) GetTodayBasicPassiveRate(ctx context.Context, req Get
 	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayBasicPassiveRateResponse{
 		BasicPassiveRate: nil,
-		Err:              errors.New("No results found"),
+		Err:              errors.New("no results found"),
 	}
 }
 
@@ -330,7 +330,7 @@ func (service *ServiceAPI) GetTodayMonetaryPolicyRate(ctx context.Context, req G
 	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayMonetaryPolicyRateResponse{
 		MonetaryPolicyRate: nil,
-		Err:                errors.New("No results found"),
+		Err:                errors.New("no results found"),
 	}
 }
 
@@ -391,7 +391,7 @@ func (service *ServiceAPI) GetTodayPrimeRate(ctx context.Context, req GetTodayEx
 	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayPrimeRateResponse{
 		PrimeRate: nil,
-		Err:       errors.New("No results found"),
+		Err:       errors.New("no results found"),
 	}
 }
 
@@ -564,7 +564,7 @@ func (service *ServiceAPI) GetCostaRicaInflationRate(ctx context.Context, req Ge
 	_ = level.Error(service.logger).Log("msg", "error scrapping Costa Rica inflation rate by date", "date", date)
 	return &GetTodayCostaRicaInflationRateResponse{
 		InflationRate: nil,
-		Err:           errors.New("No results found"),
+		Err:           errors.New("no results found"),
 	}
 }
 
@@ -637,7 +637,7 @@ func (service *ServiceAPI) GetTodayTreasuryRateUSA(ctx context.Context, req GetT
 	_ = level.Error(service.logger).Log("msg", "error scrapping USA treasury rate by date", "date", date)
 	return &GetTodayTreasuryRateUSAResponse{
 		TreasuryRateUSA: nil,
-		Err:             errors.New("No results found"),
+		Err:             errors.New("no results found"),
 	}
 }
 
@@ -664,18 +664,9 @@ func (service *ServiceAPI) GetUSAInflationRates(ctx context.Context, req GetAllD
 
 func (service *ServiceAPI) GetUSAInflationRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayUSAInflationRateResponse {
 	date := time.Now()
-	todayUSAInflationRate, err := service.Scrapper.GetUSAInflationRateByDate(date)
-	if err != nil {
-		_ = level.Debug(service.logger).Log("msg", "error scrapping USA inflation rate by date", "date", date,
-			"error", err)
-		return &GetTodayUSAInflationRateResponse{
-			InflationRate: nil,
-			Err:           err,
-		}
-	}
-
+	inflationRate, err := service.Scrapper.GetUSAInflationRateByDate(date)
 	return &GetTodayUSAInflationRateResponse{
-		InflationRate: todayUSAInflationRate,
+		InflationRate: inflationRate,
 		Err:           err,
 	}
 }
