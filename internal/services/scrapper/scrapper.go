@@ -517,7 +517,6 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dat
 					Date:  years[indexYear] + " " + months[indexMonth],
 				}
 
-				fmt.Printf("%s-%s: %s\n", years[indexYear], months[indexMonth], value)
 				inflationRatesHTML = append(inflationRatesHTML, inflationRateHTML)
 			}
 		}
@@ -529,10 +528,7 @@ func (scrapper *BCCRScrapper) GetUSAInflationRateByDates(dateFrom time.Time, dat
 				return
 			}
 
-			// check if date is between dateFrom and dateTo
-			if (inflationRate.Date.After(dateFrom) || inflationRate.Date.Equal(dateFrom)) && (inflationRate.Date.Before(dateTo) || inflationRate.Date.Equal(dateTo)) {
-				inflationRates = append(inflationRates, inflationRate)
-			}
+			inflationRates = append(inflationRates, inflationRate)
 		}
 	})
 

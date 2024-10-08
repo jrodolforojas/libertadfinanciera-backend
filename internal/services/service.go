@@ -641,6 +641,19 @@ func (service *ServiceAPI) GetTodayTreasuryRateUSA(ctx context.Context, req GetT
 	}
 }
 
+func (service *ServiceAPI) getUSAInflationRateByDate(date time.Time, inflationRates []models.USAInflationRate) (*models.USAInflationRate, error) {
+	for _, inflationRate := range inflationRates {
+		if inflationRate.Date.Month() == date.Month() && inflationRate.Date.Year() == date.Year() {
+			return &inflationRate, nil
+		}
+	}
+	return nil, errors.New("no results found")
+}
+
+func (service *ServiceAPI) calculateInteranualInflationRate(inflationRate models.USAInflationRate, yearAgoInflationRate models.USAInflationRate) float64 {
+	return ((inflationRate.Value - yearAgoInflationRate.Value) / yearAgoInflationRate.Value) * 100
+}
+
 func (service *ServiceAPI) GetUSAInflationRates(ctx context.Context, req GetAllDollarColonesChangesRequest) *GetUSAInflationRatesResponse {
 	result, err := service.Scrapper.GetUSAInflationRateByDates(req.DateFrom, req.DateTo)
 	if err != nil {
@@ -652,21 +665,64 @@ func (service *ServiceAPI) GetUSAInflationRates(ctx context.Context, req GetAllD
 		}
 	}
 
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Date.After(result[j].Date)
+	interanualInflationRates := []models.USAInflationRate{}
+
+	for _, inflationRate := range result {
+		yearAgo := inflationRate.Date.AddDate(-1, 0, 0)
+		yearAgoInflationRate, err := service.getUSAInflationRateByDate(yearAgo, result)
+		if yearAgoInflationRate != nil && err == nil {
+			result := service.calculateInteranualInflationRate(inflationRate, *yearAgoInflationRate)
+			interanualInflationRate := models.USAInflationRate{
+				Date:  inflationRate.Date,
+				Value: result,
+			}
+			interanualInflationRates = append(interanualInflationRates, interanualInflationRate)
+		}
+	}
+
+	inflationRates := []models.USAInflationRate{}
+	// check if date is between dateFrom and dateTo
+	for _, inflationRate := range interanualInflationRates {
+		if (inflationRate.Date.After(req.DateFrom) || inflationRate.Date.Equal(req.DateFrom)) &&
+			(inflationRate.Date.Before(req.DateTo) || inflationRate.Date.Equal(req.DateTo)) {
+			inflationRates = append(inflationRates, inflationRate)
+		}
+	}
+
+	sort.Slice(inflationRates, func(i, j int) bool {
+		return inflationRates[i].Date.After(inflationRates[j].Date)
 	})
 
 	return &GetUSAInflationRatesResponse{
-		InflationRates: result,
+		InflationRates: inflationRates,
 		Err:            nil,
 	}
 }
 
 func (service *ServiceAPI) GetUSAInflationRate(ctx context.Context, req GetTodayExchangeRateRequest) *GetTodayUSAInflationRateResponse {
 	date := time.Now()
-	inflationRate, err := service.Scrapper.GetUSAInflationRateByDate(date)
+	result, err := service.Scrapper.GetUSAInflationRateByDates(date, date)
+
+	if err != nil {
+		return &GetTodayUSAInflationRateResponse{
+			InflationRate: nil,
+			Err:           err,
+		}
+	}
+
+	inflationRate := models.USAInflationRate{}
+	lastResult := result[len(result)-1]
+	lastYearAgoInflationRate, err := service.getUSAInflationRateByDate(lastResult.Date.AddDate(-1, 0, 0), result)
+	if lastYearAgoInflationRate != nil && err == nil {
+		result := service.calculateInteranualInflationRate(lastResult, *lastYearAgoInflationRate)
+		inflationRate = models.USAInflationRate{
+			Date:  lastResult.Date,
+			Value: result,
+		}
+	}
+
 	return &GetTodayUSAInflationRateResponse{
-		InflationRate: inflationRate,
+		InflationRate: &inflationRate,
 		Err:           err,
 	}
 }
